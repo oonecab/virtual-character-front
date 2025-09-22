@@ -1,0 +1,154 @@
+.data-management {
+  padding: 0;
+  background: transparent;
+}
+
+.data-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.data-management-header h2 {
+  margin: 0;
+  color: #262626;
+}
+
+@media (max-width: 768px) {
+  .data-management-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.record-detail {
+  padding: 16px 0;
+}
+
+.detail-item {
+  margin-bottom: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.ant-table-wrapper {
+  background: white;
+  border-radius: 8px;
+}
+
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #f5f5f5;
+}
+
+.ant-table-selection-column {
+  width: 60px;
+}
+
+.ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.ant-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ant-form-item-label > label {
+  font-weight: 500;
+}
+
+.ant-statistic-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.ant-statistic-content {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.ant-tag {
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+.ant-btn-link {
+  padding: 4px 8px;
+  height: auto;
+}
+
+.ant-drawer-header {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ant-drawer-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ant-input-number {
+  width: 100%;
+}
+
+.ant-picker {
+  width: 100%;
+}
+
+@media (max-width: 576px) {
+  .ant-table {
+    font-size: 12px;
+  }
+  
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 8px 4px;
+  }
+  
+  .detail-item {
+    margin-bottom: 12px;
+    padding: 6px 0;
+  }
+}
+
+/* 批量操作卡片样式 */
+.ant-card.ant-card-bordered {
+  border-color: #b7eb8f;
+}
+
+/* 表格行选择样式 */
+.ant-table-tbody > tr.ant-table-row-selected > td {
+  background: #e6f7ff;
+}
+
+.ant-table-tbody > tr.ant-table-row-selected:hover > td {
+  background: #bae7ff;
+}

@@ -1,0 +1,240 @@
+.character-list-container {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.header-section {
+  background: white;
+  padding: 32px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.page-title {
+  text-align: center;
+  margin-bottom: 24px !important;
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.search-section {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  max-width: 600px;
+}
+
+.search-input .ant-input {
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.create-btn {
+  border-radius: 8px;
+  font-weight: 500;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+}
+
+.create-btn:hover {
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+  transform: translateY(-1px);
+}
+
+.category-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.category-btn {
+  border-radius: 20px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.category-btn.ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.category-btn.ant-btn-default {
+  background: #f0f0f0;
+  border-color: #d9d9d9;
+  color: #666;
+}
+
+.category-btn.ant-btn-default:hover {
+  background: #e6f7ff;
+  border-color: #91d5ff;
+  color: #1890ff;
+}
+
+.character-grid {
+  margin-top: 24px;
+}
+
+.character-card {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.character-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: #1890ff;
+}
+
+.character-avatar-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
+}
+
+.character-avatar {
+  font-size: 32px !important;
+  background: white;
+  border: 3px solid #1890ff;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+}
+
+.character-info {
+  padding: 0 8px;
+}
+
+.character-name {
+  margin-bottom: 8px !important;
+  color: #262626;
+  font-size: 16px !important;
+  font-weight: 600;
+  text-align: center;
+}
+
+.character-description {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 12px !important;
+  min-height: 42px;
+}
+
+.character-stats {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  padding: 8px 0;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #666;
+  font-size: 12px;
+}
+
+.stat-item .anticon {
+  color: #1890ff;
+}
+
+.character-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.character-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: #f0f9ff;
+  border: 1px solid #b3d8ff;
+  color: #1890ff;
+  margin: 0;
+}
+
+.chat-btn {
+  width: 100%;
+  border-radius: 8px;
+  font-weight: 500;
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  border: none;
+}
+
+.chat-btn:hover {
+  background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%);
+  transform: translateY(-1px);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .character-list-container {
+    padding: 16px;
+  }
+  
+  .header-section {
+    padding: 20px;
+  }
+  
+  .search-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-input {
+    max-width: none;
+  }
+  
+  .category-tabs {
+    justify-content: center;
+  }
+  
+  .character-grid {
+    margin-top: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .character-list-container {
+    padding: 12px;
+  }
+  
+  .header-section {
+    padding: 16px;
+  }
+  
+  .page-title {
+    font-size: 20px !important;
+  }
+  
+  .character-avatar-section {
+    padding: 16px;
+  }
+  
+  .character-avatar {
+    font-size: 24px !important;
+  }
+}

@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model TUser {
+  id           BigInt    @id @default(autoincrement()) @map("id")
+  username     String?   @unique(map: "idx_unique_username") @map("username") @db.VarChar(256)
+  password     String?   @map("password") @db.VarChar(512)
+  realName     String?   @map("real_name") @db.VarChar(256)
+  phone        String?   @map("phone") @db.VarChar(128)
+  mail         String?   @map("mail") @db.VarChar(512)
+  deletionTime BigInt?   @map("deletion_time")
+  createTime   DateTime? @map("create_time") @db.DateTime(0)
+  updateTime   DateTime? @map("update_time") @db.DateTime(0)
+  delFlag      Int?      @map("del_flag") @db.TinyInt
+
+  @@map("t_user")
+}

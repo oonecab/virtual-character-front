@@ -1,0 +1,60 @@
+.dashboard {
+  padding: 0;
+  background: transparent;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+  color: #262626;
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.ant-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.ant-statistic-content {
+  font-weight: 600;
+}
+
+.ant-progress {
+  margin-bottom: 8px;
+}
+
+.ant-list-item {
+  padding: 12px 0;
+}
+
+.ant-list-item-meta-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.ant-table-small .ant-table-tbody > tr > td {
+  padding: 8px;
+}
+
+.ant-alert {
+  border-radius: 8px;
+}
