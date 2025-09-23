@@ -1,0 +1,226 @@
+.ai-chat-sidebar {
+  --sidebar-bg: #ffffff;
+  --primary-color: #4CC3FA;
+  --text-primary: #1C1F23;
+  --text-secondary: #8A8F8D;
+  --text-tertiary: #C9CDD4;
+  --border-color: #EBEDF0;
+  --hover-bg: #F7F8FA;
+}
+
+.ai-chat-sidebar .semi-sidesheet-content {
+  padding: 0;
+  background: var(--sidebar-bg);
+}
+
+.ai-chat-sidebar .semi-sidesheet-header {
+  background: linear-gradient(135deg, #4CC3FA 0%, #36A3F7 100%);
+  color: white;
+  border-bottom: none;
+  padding: 20px 24px;
+}
+
+.ai-chat-sidebar .semi-sidesheet-header .semi-sidesheet-header-text {
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.ai-chat-sidebar .semi-sidesheet-close {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.ai-chat-sidebar .semi-sidesheet-close:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  gap: 24px;
+}
+
+/* 功能按钮区域 */
+.function-section {
+  flex-shrink: 0;
+}
+
+.role-play-btn {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #36A3F7 100%);
+  border: none;
+  border-radius: 12px;
+  height: 48px;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(76, 195, 250, 0.3);
+  transition: all 0.3s ease;
+}
+
+.role-play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 195, 250, 0.4);
+}
+
+.role-play-btn:active {
+  transform: translateY(0);
+}
+
+/* 分割线 */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--border-color) 50%, transparent 100%);
+  margin: 0 -24px;
+}
+
+/* 历史会话区域 */
+.history-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.conversation-list {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0 -8px;
+  padding: 0 8px;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+/* 会话卡片 */
+.conversation-card {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--sidebar-bg);
+}
+
+.conversation-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(76, 195, 250, 0.15);
+  transform: translateY(-2px);
+}
+
+.conversation-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conversation-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.conversation-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conversation-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #F7F8FA;
+}
+
+/* 滚动条样式 */
+.conversation-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.conversation-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.conversation-list::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: 2px;
+}
+
+.conversation-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .ai-chat-sidebar {
+    width: 100% !important;
+  }
+  
+  .sidebar-content {
+    padding: 16px;
+    gap: 20px;
+  }
+  
+  .role-play-btn {
+    height: 44px;
+    font-size: 13px;
+  }
+  
+  .conversation-card {
+    border-radius: 8px;
+  }
+}
+
+/* 动画效果 */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.conversation-card {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+.conversation-card:nth-child(1) { animation-delay: 0.1s; }
+.conversation-card:nth-child(2) { animation-delay: 0.2s; }
+.conversation-card:nth-child(3) { animation-delay: 0.3s; }
+.conversation-card:nth-child(4) { animation-delay: 0.4s; }
+.conversation-card:nth-child(5) { animation-delay: 0.5s; }
+
+/* Empty 状态样式 */
+.semi-empty {
+  padding: 40px 20px;
+}
+
+.semi-empty-image {
+  margin-bottom: 16px;
+}
+
+.semi-empty-description {
+  color: var(--text-secondary);
+  font-size: 13px;
+}

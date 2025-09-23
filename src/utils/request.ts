@@ -1,5 +1,18 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
-import { Toast } from '@douyinfe/semi-ui';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+
+// 扩展 AxiosInstance 接口
+declare module 'axios' {
+  interface AxiosInstance {
+    request<T = any>(config: AxiosRequestConfig): Promise<T>;
+    get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+    delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+    head<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+    options<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+    post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+    put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+    patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+  }
+}
 
 // API响应接口
 interface ApiResponse<T = any> {
@@ -82,7 +95,7 @@ request.interceptors.response.use(
       return data;
     } else {
       // 业务错误
-      Toast.error(data.message || '请求失败');
+      console.error('API Error:', data.message || '请求失败');
       return Promise.reject(new Error(data.message || '请求失败'));
     }
   },
@@ -93,27 +106,27 @@ request.interceptors.response.use(
       
       switch (status) {
         case 401:
-          Toast.error('登录已过期，请重新登录');
+          console.error('登录已过期，请重新登录');
           TokenManager.removeToken();
           // 可以在这里跳转到登录页
           window.location.href = '/login';
           break;
         case 403:
-          Toast.error('没有权限访问该资源');
+          console.error('没有权限访问该资源');
           break;
         case 404:
-          Toast.error('请求的资源不存在');
+          console.error('请求的资源不存在');
           break;
         case 500:
-          Toast.error('服务器内部错误');
+          console.error('服务器内部错误');
           break;
         default:
-          Toast.error(data?.message || `请求失败 (${status})`);
+          console.error(data?.message || `请求失败，状态码：${status}`);
       }
     } else if (error.request) {
-      Toast.error('网络连接失败，请检查网络');
+      console.error('网络连接失败，请检查网络');
     } else {
-      Toast.error('请求配置错误');
+      console.error('请求配置错误');
     }
     
     return Promise.reject(error);

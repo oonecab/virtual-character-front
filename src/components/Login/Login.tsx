@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Toast, Checkbox } from '@douyinfe/semi-ui';
+import { Form, Input, Button, Card, Checkbox, Notification } from '@douyinfe/semi-ui';
 import { IconUser, IconLock } from '@douyinfe/semi-icons';
 import { useRouter } from 'next/navigation';
-import { request } from '../../utils/request';
+import { UserManagementService, UserLoginReqDTO } from '../../services/userManagement';
 import { useAuth } from '../../contexts/AuthContext';
 import './Login.css';
 
@@ -10,11 +10,6 @@ interface LoginFormData {
   username: string;
   password: string;
   remember?: boolean;
-}
-
-interface LoginData {
-  username: string;
-  password: string;
 }
 
 const Login: React.FC = () => {
@@ -26,38 +21,53 @@ const Login: React.FC = () => {
   const handleLogin = async (values: LoginFormData) => {
     setLoading(true);
     try {
-      const loginData: LoginData = {
+      const loginData: UserLoginReqDTO = {
         username: values.username,
         password: values.password,
       };
 
-      const response = await request.post('/users/login', loginData);
+      const response = await UserManagementService.login(loginData);
       
-      // 假设登录成功后返回的数据中包含token和用户信息
-      const { data } = response;
-      
-      if (data.token) {
-        // 使用认证上下文存储token和用户信息
-        const userInfo = {
-          id: data.userInfo?.id || 0,
-          username: values.username,
-          realName: data.userInfo?.realName || values.username,
-          mail: data.userInfo?.mail || '',
-          phone: data.userInfo?.phone || '',
-          isAdmin: data.userInfo?.isAdmin || false,
-        };
-        login(data.token, userInfo);
+      // 根据新的响应结构处理数据
+      if (response && response.data) {
+        const userInfo = response.data;
         
-        Toast.success('登录成功');
+        // 使用认证上下文存储用户信息
+        const authUserInfo = {
+          id: userInfo.id,
+          username: userInfo.username,
+          realName: userInfo.realName || userInfo.username,
+          mail: userInfo.mail || '',
+          phone: userInfo.phone || '',
+          isAdmin: false, // 根据实际需要调整
+        };
+        
+        // 假设token在响应头或其他地方，这里先用一个临时token
+        const token = 'temp_token_' + Date.now();
+        login(token, authUserInfo);
+        
+        Notification.success({ 
+          title: '登录成功', 
+          content: '欢迎回来！',
+          position: 'top'
+        });
         
         // 跳转到首页或之前访问的页面
         router.push('/ai-characters');
       } else {
-        Toast.error('登录失败：未获取到有效token');
+        Notification.error({ 
+          title: '登录失败', 
+          content: '登录失败：服务器响应异常',
+          position: 'top'
+        });
       }
     } catch (error: any) {
       console.error('登录失败:', error);
-      Toast.error(error.message || '登录失败，请检查用户名和密码');
+      Notification.error({ 
+        title: '登录失败', 
+        content: error.message || '登录失败，请检查用户名和密码',
+        position: 'top'
+      });
     } finally {
       setLoading(false);
     }
@@ -113,6 +123,7 @@ const Login: React.FC = () => {
             block
             size="large"
             style={{ marginBottom: 16 }}
+
           >
             登录
           </Button>

@@ -15,7 +15,10 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
 
   // 不需要认证的页面
   const publicRoutes = ['/login', '/register'];
+  // 不使用管理布局的页面（包括聊天页面）
+  const noLayoutRoutes = ['/login', '/register', '/ai-characters'];
   const isPublicRoute = publicRoutes.includes(pathname);
+  const isNoLayoutRoute = noLayoutRoutes.includes(pathname);
 
   // 移除强制重定向逻辑，允许用户自由访问所有页面
   // useEffect(() => {
@@ -47,9 +50,14 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
     return <>{children}</>;
   }
 
+  // 聊天页面等特殊页面不使用管理布局
+  if (isNoLayoutRoute) {
+    return <>{children}</>;
+  }
+
   // 所有页面都可以自由访问
   // 如果用户已认证且不在公共路由，使用管理布局
-  if (isAuthenticated && !isPublicRoute) {
+  if (isAuthenticated && !isPublicRoute && !isNoLayoutRoute) {
     return <AdminLayout>{children}</AdminLayout>;
   }
 

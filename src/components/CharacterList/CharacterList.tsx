@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Card, Row, Col, Avatar, Typography, Input, Button, Tag, Space } from '@douyinfe/semi-ui';
-import { IconSearch, IconComment, IconUser, IconStar } from '@douyinfe/semi-icons';
+import { IconSearch, IconComment, IconUser, IconStar, IconMenu } from '@douyinfe/semi-icons';
+import AiChatSidebar from '../AiChatSidebar/AiChatSidebar';
 import './CharacterList.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -22,6 +23,7 @@ interface Character {
 const CharacterList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('全部');
+  const [sidebarVisible, setSidebarVisible] = useState(false);
 
   // 模拟角色数据
   const characters: Character[] = [
@@ -56,7 +58,22 @@ const CharacterList: React.FC = () => {
   return (
     <div className="character-list-container">
       <div className="header-section">
-        <Title heading={2} className="page-title">发现 AI 智能体</Title>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <Title heading={2} className="page-title">发现 AI 智能体</Title>
+          <Button
+            theme="borderless"
+            icon={<IconMenu />}
+            onClick={() => setSidebarVisible(true)}
+            size="large"
+            style={{ 
+              color: '#1890ff',
+              border: '1px solid #d9d9d9',
+              borderRadius: '8px'
+            }}
+          >
+            AI 助手
+          </Button>
+        </div>
         <div className="search-section">
           <Input
             placeholder="搜索角色名称或描述"
@@ -141,6 +158,13 @@ const CharacterList: React.FC = () => {
           <Text type="secondary">没有找到匹配的角色，请尝试其他搜索词</Text>
         </div>
       )}
+
+      {/* AI 聊天侧边栏 */}
+      <AiChatSidebar
+        visible={sidebarVisible}
+        onCancel={() => setSidebarVisible(false)}
+        placement="right"
+      />
     </div>
   );
 };

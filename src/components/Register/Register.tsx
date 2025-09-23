@@ -1,22 +1,17 @@
+'use client';
+
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Toast } from '@douyinfe/semi-ui';
-import { IconUser, IconLock, IconMail, IconPhone, IconIdCard } from '@douyinfe/semi-icons';
+import {Card, Input, Button, Notification, Form} from '@douyinfe/semi-ui';
+import {RegisterRequest, UserManagementService} from '@/services/userManagement';
+import { UserRegisterReqDTO } from '@/services/userManagement';
 import { useRouter } from 'next/navigation';
-import { request } from '../../utils/request';
 import './Register.css';
+import {IconIdCard, IconLock, IconMail, IconPhone, IconUser} from "@douyinfe/semi-icons";
 
 interface RegisterFormData {
   username: string;
   password: string;
   confirmPassword: string;
-  realName: string;
-  phone: string;
-  mail: string;
-}
-
-interface RegisterData {
-  username: string;
-  password: string;
   realName: string;
   phone: string;
   mail: string;
@@ -30,15 +25,7 @@ const Register: React.FC = () => {
   const handleRegister = async (values: RegisterFormData) => {
     setLoading(true);
     try {
-      // 检查用户名是否已存在
-      const checkResponse = await request.get(`/users/check/${values.username}`);
-      if (checkResponse.data) {
-        Toast.error('用户名已存在，请选择其他用户名');
-        setLoading(false);
-        return;
-      }
-
-      const registerData: RegisterData = {
+      const registerData: RegisterRequest = {
         username: values.username,
         password: values.password,
         realName: values.realName,
@@ -46,15 +33,33 @@ const Register: React.FC = () => {
         mail: values.mail,
       };
 
-      await request.post('/users/register', registerData);
+      const response = await UserManagementService.register(registerData);
       
-      Toast.success('注册成功，请登录');
-      
-      // 跳转到登录页面
-      router.push('/login');
+      if (response.success) {
+        Notification.success({ 
+          title: '注册成功', 
+          content: response.message || '注册成功，请登录',
+          position: 'top'
+        });
+        
+        // 跳转到登录页面
+        router.push('/login');
+      } else {
+        Notification.error({ 
+          title: '注册失败', 
+          content: response.message || '注册失败',
+          position: 'top'
+        });
+      }
     } catch (error: any) {
       console.error('注册失败:', error);
-      Toast.error(error.message || '注册失败，请稍后重试');
+      // 如果error有response，尝试获取后端返回的错误消息
+      const errorMessage = error.response?.data?.message || error.message || '注册失败，请稍后重试';
+      Notification.error({ 
+        title: '注册失败', 
+        content: errorMessage,
+        position: 'top'
+      });
     } finally {
       setLoading(false);
     }

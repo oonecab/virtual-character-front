@@ -9,11 +9,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
       router.push('/ai-characters');
-    } else {
-      router.push('/login');
-    }
   }, [user, router]);
 
   return (
