@@ -45,20 +45,21 @@ const LoginModal: React.FC<LoginModalProps> = ({
       const response = await UserManagementService.login(loginData);
       console.log('登录响应:', response);
       
-      if (response && response.data) {
+      if (response && response.data && response.data.token) {
         const userInfo = response.data;
         
-        // 使用认证上下文存储用户信息
+        // 使用认证上下文存储用户信息和token
         const authUserInfo = {
           id: userInfo.id,
           username: userInfo.username,
           realName: userInfo.realName || userInfo.username,
           mail: userInfo.mail || '',
           phone: userInfo.phone || '',
-          isAdmin: false,
+          isAdmin: userInfo.isAdmin || false,
         };
         
-        const token = 'temp_token_' + Date.now();
+        // 使用后端返回的真实token
+        const token = userInfo.token;
         login(token, authUserInfo);
         
         Notification.success({ 

@@ -79,7 +79,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }}>
         {/* 头部区域 */}
         <div style={{ 
-          padding: '16px 20px',
+          padding: '0px',
           borderBottom: '1px solid #f0f0f0',
           position: 'relative',
           display: 'flex',

@@ -13,6 +13,7 @@
     "@ant-design/nextjs-registry": "^1.1.0",
     "@douyinfe/semi-icons": "^2.86.0",
     "@douyinfe/semi-ui": "^2.86.0",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@prisma/client": "^6.16.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",

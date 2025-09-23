@@ -29,7 +29,7 @@ const Login: React.FC = () => {
       const response = await UserManagementService.login(loginData);
       
       // 根据新的响应结构处理数据
-      if (response && response.data) {
+      if (response && response.data && response.data.token) {
         const userInfo = response.data;
         
         // 使用认证上下文存储用户信息
@@ -39,11 +39,11 @@ const Login: React.FC = () => {
           realName: userInfo.realName || userInfo.username,
           mail: userInfo.mail || '',
           phone: userInfo.phone || '',
-          isAdmin: false, // 根据实际需要调整
+          isAdmin: userInfo.isAdmin || false,
         };
         
-        // 假设token在响应头或其他地方，这里先用一个临时token
-        const token = 'temp_token_' + Date.now();
+        // 使用后端返回的真实token
+        const token = userInfo.token;
         login(token, authUserInfo);
         
         Notification.success({ 

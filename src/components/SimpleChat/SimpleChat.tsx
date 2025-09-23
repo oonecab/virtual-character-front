@@ -3,14 +3,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Toast } from '@douyinfe/semi-ui';
 import { IconMicrophone, IconSend, IconUser, IconMenu } from '@douyinfe/semi-icons';
+import { useRouter } from 'next/navigation';
 import ChatBubble from '../ChatBubble/ChatBubble';
 import LoginModal from '../LoginModal/LoginModal';
 import RegisterModal from '../RegisterModal/RegisterModal';
 import { useAuth } from '../../contexts/AuthContext';
+import AiChatService from '../../services/aiChatService';
 import AiChatSidebar from '../AiChatSidebar/AiChatSidebar';
 import ChatRoom from '../ChatRoom/ChatRoom';
 
 const SimpleChat: React.FC = () => {
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isChatMode, setIsChatMode] = useState(false);
@@ -22,7 +26,6 @@ const SimpleChat: React.FC = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null); // 新增：当前会话ID
   const [initialMessage, setInitialMessage] = useState<string>(''); // 新增：初始消息
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { user } = useAuth();
 
   // 获取动态问候语
   const getGreeting = () => {
@@ -51,34 +54,18 @@ const SimpleChat: React.FC = () => {
     }
   }, [inputValue]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (inputValue.trim()) {
-      const userMessage = {
-        role: 'user',
-        id: `user-${Date.now()}`,
-        createAt: Date.now(),
-        content: inputValue,
-      };
-
-      // 添加发送动画效果
+      // 创建新会话并切换到ChatRoom
+      const sessionId = await createNewSession(inputValue.trim());
+      if (sessionId) {
+        setCurrentSessionId(sessionId);
+        setInitialMessage(inputValue.trim());
+        setShowChatRoom(true);
+        // 跳转到带有sessionId的URL
+        router.push(`/ai-characters?sessionId=${sessionId}`);
+      }
       setInputValue('');
-
-      // 延迟添加消息以创建平滑过渡
-      setTimeout(() => {
-        setMessages(prev => [...prev, userMessage]);
-        setIsChatMode(true);
-      }, 100);
-
-      // 模拟AI回复
-      setTimeout(() => {
-        const aiMessage = {
-          role: 'assistant',
-          id: `ai-${Date.now()}`,
-          createAt: Date.now(),
-          content: '这是AI的回复消息，我已经收到了您的消息。',
-        };
-        setMessages(prev => [...prev, aiMessage]);
-      }, 1500);
     }
   };
 
@@ -129,7 +116,15 @@ const SimpleChat: React.FC = () => {
   };
 
   const handleLoginClick = () => {
-    setShowLoginModal(true);
+    if (user) {
+      // 如果已登录，显示退出登录确认
+      if (window.confirm('确定要退出登录吗？')) {
+        logout();
+      }
+    } else {
+      // 如果未登录，显示登录模态框
+      setShowLoginModal(true);
+    }
   };
 
   const handleLoginCancel = () => {
@@ -153,30 +148,10 @@ const SimpleChat: React.FC = () => {
   // 创建新的AI会话
   const createNewSession = async (firstMessage: string): Promise<string | null> => {
     try {
-      const response = await fetch('/api/xunzhi/v1/ai/conversations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userName: user?.username || 'user',
-          aiId: 1,
-          firstMessage: firstMessage
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('创建会话失败');
-      }
-
-      const result = await response.json();
-      if (result.code === '200' || result.code === 'SUCCESS') {
-        return result.data.sessionId;
-      } else {
-        throw new Error(result.message || '创建会话失败');
-      }
+      const session = await AiChatService.createSession(firstMessage);
+      return session ? session.sessionId : null;
     } catch (error) {
-      console.error('创建会话错误:', error);
+      console.error('创建会话失败:', error);
       Toast.error('创建会话失败，请重试');
       return null;
     }
@@ -191,6 +166,8 @@ const SimpleChat: React.FC = () => {
         setCurrentSessionId(sessionId);
         setInitialMessage(message);
         setShowChatRoom(true);
+        // 跳转到带有sessionId的URL
+        router.push(`/ai-characters?sessionId=${sessionId}`);
       }
     } catch (error) {
       console.error('开始聊天失败:', error);
@@ -205,27 +182,86 @@ const SimpleChat: React.FC = () => {
     setInitialMessage('');
   };
 
-  // 如果显示ChatRoom，渲染ChatRoom组件
+  // 如果显示ChatRoom，在主页面布局中渲染ChatRoom组件
   if (showChatRoom && currentSessionId) {
     return (
-      <ChatRoom
-        sessionId={currentSessionId}
-        initialMessage={initialMessage}
-        onBack={handleBackToMain}
-      />
+      <div className="min-h-screen bg-white flex items-center justify-center p-5 font-sans transition-all duration-700 ease-in-out">
+        {/* 左上角侧边栏展开按钮 */}
+        {!sidebarVisible && (
+          <div className="fixed top-5 left-5 z-50">
+            <Button
+              theme="borderless"
+              icon={<IconMenu />}
+              onClick={() => setSidebarVisible(true)}
+              className="w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl border border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-500 transition-all duration-200 flex items-center justify-center"
+            />
+          </div>
+        )}
+
+        {/* 右上角按钮组 */}
+        <div className="fixed top-5 right-5 z-50 flex gap-3">
+          {/* 用户按钮 */}
+          <Button
+            theme="borderless"
+            icon={<IconUser />}
+            onClick={handleLoginClick}
+            title={user ? `${user.username} - 点击退出登录` : '点击登录'}
+            className={`w-12 h-12 rounded-full shadow-lg hover:shadow-xl border transition-all duration-200 flex items-center justify-center ${
+              user 
+                ? 'bg-blue-500 border-blue-500 text-white hover:bg-blue-600 hover:border-blue-600' 
+                : 'bg-white border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-500'
+            }`}
+          />
+        </div>
+
+        {/* ChatRoom组件 - 在主页面布局中显示 */}
+        <div className="w-full max-w-4xl mx-auto">
+          <ChatRoom
+            sessionId={currentSessionId}
+            initialMessage={initialMessage}
+            onBack={handleBackToMain}
+          />
+        </div>
+
+        {/* 侧边栏 */}
+        <AiChatSidebar
+          visible={sidebarVisible}
+          onClose={() => setSidebarVisible(false)}
+          onStartChat={handleStartChat}
+        />
+
+        {/* 登录模态框 */}
+        <LoginModal
+          visible={showLoginModal}
+          onCancel={handleLoginCancel}
+          onSwitchToRegister={handleSwitchToRegister}
+        />
+
+        {/* 注册模态框 */}
+        <RegisterModal
+          visible={showRegisterModal}
+          onCancel={handleRegisterCancel}
+          onSwitchToLogin={handleSwitchToLogin}
+        />
+      </div>
     );
   }
 
   if (isChatMode) {
     return (
       <div className="min-h-screen bg-white p-5 font-sans transition-all duration-700 ease-in-out">
-        {/* 右上角登录图标 */}
+        {/* 右上角用户按钮 */}
         <div className="fixed top-5 right-5 z-50">
           <Button
             theme="borderless"
             icon={<IconUser />}
             onClick={handleLoginClick}
-            className="w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl border border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-500 transition-all duration-200 flex items-center justify-center"
+            title={user ? `${user.username} - 点击退出登录` : '点击登录'}
+            className={`w-12 h-12 rounded-full shadow-lg hover:shadow-xl border transition-all duration-200 flex items-center justify-center ${
+              user 
+                ? 'bg-blue-500 border-blue-500 text-white hover:bg-blue-600 hover:border-blue-600' 
+                : 'bg-white border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-500'
+            }`}
           />
         </div>
         <div className="w-full max-w-4xl mx-auto">
@@ -264,12 +300,17 @@ const SimpleChat: React.FC = () => {
 
       {/* 右上角按钮组 */}
       <div className="fixed top-5 right-5 z-50 flex gap-3">
-        {/* 登录按钮 */}
+        {/* 用户按钮 */}
         <Button
           theme="borderless"
           icon={<IconUser />}
           onClick={handleLoginClick}
-          className="w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl border border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-500 transition-all duration-200 flex items-center justify-center"
+          title={user ? `${user.username} - 点击退出登录` : '点击登录'}
+          className={`w-12 h-12 rounded-full shadow-lg hover:shadow-xl border transition-all duration-200 flex items-center justify-center ${
+            user 
+              ? 'bg-blue-500 border-blue-500 text-white hover:bg-blue-600 hover:border-blue-600' 
+              : 'bg-white border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-500'
+          }`}
         />
       </div>
       <div className="w-full max-w-2xl flex flex-col items-center gap-10">

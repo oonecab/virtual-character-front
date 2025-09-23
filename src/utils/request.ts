@@ -74,10 +74,23 @@ const request: AxiosInstance = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = TokenManager.getToken();
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // 定义不需要token的接口路径
+    const noTokenPaths = [
+      '/xunzhi/v1/users/login',
+      '/xunzhi/v1/users/register'
+    ];
+    
+    // 检查当前请求是否为不需要token的接口
+    const isNoTokenPath = noTokenPaths.some(path => config.url?.includes(path));
+    
+    // 只有非登录注册接口才添加Authorization header
+    if (!isNoTokenPath) {
+      const token = TokenManager.getToken();
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
+    
     return config;
   },
   (error) => {
