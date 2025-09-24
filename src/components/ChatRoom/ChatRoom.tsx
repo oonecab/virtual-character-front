@@ -1,14 +1,19 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Chat } from '@douyinfe/semi-ui';
+import { Chat, Input, Button, Spin, Toast } from '@douyinfe/semi-ui';
+import { IconSend } from '@douyinfe/semi-icons';
 import { SSEHandler, SSEMessage } from './SSEHandler';
+import './ChatRoom.css';
 
 interface ChatRoomProps {
   sessionId: string;
+  initialMessage?: string;
+  onBack?: () => void;
 }
 
-const defaultMessage: SSEMessage[] = [];
+// 连接状态类型
+type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
 
 const roleInfo = {
   user: {
@@ -20,27 +25,35 @@ const roleInfo = {
 };
 
 const commonOuterStyle = {
-  border: '1px solid var(--semi-color-border)',
-  borderRadius: '16px',
-  height: 600,
+    opacity: 0,
+    transform: 'translateY(20px)',
+    transition: 'all 0.6s ease-out',
+    // 移除固定的minHeight，让内容自然撑开，避免影响侧边栏布局
+    paddingBottom: '120px', // 为固定输入框留出空间
 };
 
-let messageId = 0;
-function getMessageId() {
-  return `msg-${messageId++}`;
-}
+const animatedStyle = {
+  ...commonOuterStyle,
+  opacity: 1,
+  transform: 'translateY(0)',
+};
 
-const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId }) => {
-  const [messages, setMessages] = useState<SSEMessage[]>(defaultMessage);
+const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }) => {
+  const [messages, setMessages] = useState<SSEMessage[]>([]);
+  const [isAnimated, setIsAnimated] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
+  const [isLoading, setIsLoading] = useState(false);
   const sseHandlerRef = useRef<SSEHandler | null>(null);
   const messageSeqRef = useRef(1);
-
+  
   // 初始化SSE处理器
   useEffect(() => {
     sseHandlerRef.current = new SSEHandler({
       onMessage: (content: string) => {
         // 更新最后一条消息的内容
         setMessages(prevMessages => {
+          if (!prevMessages) return prevMessages;
           const lastMessage = prevMessages[prevMessages.length - 1];
           if (lastMessage && lastMessage.status === 'incomplete') {
             const updatedMessage = {
@@ -53,13 +66,15 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId }) => {
         });
       },
       onComplete: (finalContent: string) => {
+        console.log('✅ SSE完成:', finalContent);
         // 标记最后一条消息为完成状态
         setMessages(prevMessages => {
+          if (!prevMessages || prevMessages.length === 0) return prevMessages;
           const lastMessage = prevMessages[prevMessages.length - 1];
-          if (lastMessage && lastMessage.status !== 'complete') {
+          if (lastMessage && lastMessage.role === 'assistant') {
             const completedMessage = {
               ...lastMessage,
-              content: finalContent || lastMessage.content,
+              content: finalContent,
               status: 'complete' as const
             };
             return [...prevMessages.slice(0, -1), completedMessage];
@@ -68,14 +83,15 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId }) => {
         });
       },
       onError: (error: Error) => {
-        console.error('SSE处理错误:', error);
-        // 标记最后一条消息为完成状态（错误情况下）
+        console.error('❌ SSE错误:', error);
+        // 标记最后一条消息为错误状态
         setMessages(prevMessages => {
+          if (!prevMessages || prevMessages.length === 0) return prevMessages;
           const lastMessage = prevMessages[prevMessages.length - 1];
-          if (lastMessage && lastMessage.status !== 'complete') {
+          if (lastMessage && lastMessage.role === 'assistant') {
             const errorMessage = {
               ...lastMessage,
-              content: lastMessage.content || '抱歉，发生了错误',
+              content: '抱歉，发生了错误，请重试。',
               status: 'complete' as const
             };
             return [...prevMessages.slice(0, -1), errorMessage];
@@ -85,13 +101,35 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId }) => {
       }
     });
 
-    return () => {
-      if (sseHandlerRef.current) {
-        sseHandlerRef.current.closeConnection();
-      }
-    };
-  }, []);
+    // 启动渐进动画
+    const animationTimer = setTimeout(() => {
+      setIsAnimated(true);
+    }, 100);
 
+    // 如果有初始消息，在动画完成后自动发送
+    if (initialMessage) {
+      const autoSendTimer = setTimeout(() => {
+        onMessageSend(initialMessage);
+      }, 800); // 等待动画完成后发送
+
+      return () => {
+        clearTimeout(animationTimer);
+        clearTimeout(autoSendTimer);
+      };
+    }
+
+    return () => {
+      clearTimeout(animationTimer);
+    };
+  }, [initialMessage]);
+
+  // 生成唯一消息ID
+  const getMessageId = useCallback(() => {
+    const id = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log('🆔 生成消息ID:', id);
+    return id;
+  }, []);
+  
   // 发送消息处理
   const onMessageSend = useCallback(async (content: string, attachment?: any) => {
     console.log('📤 发送消息:', content);
@@ -141,21 +179,17 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId }) => {
     }
   }, [sessionId]);
 
-  // 消息变化处理
-  const onChatsChange = useCallback((chats: SSEMessage[]) => {
-    setMessages(chats);
-  }, []);
-
   // 停止生成处理
   const onStopGenerator = useCallback(() => {
-    console.log('🛑 停止生成');
+    console.log('⏹️ 停止生成');
     if (sseHandlerRef.current) {
       sseHandlerRef.current.closeConnection();
       
-      // 标记最后一条消息为完成状态
+      // 将最后一条消息标记为完成
       setMessages(prevMessages => {
+        if (!prevMessages || prevMessages.length === 0) return prevMessages;
         const lastMessage = prevMessages[prevMessages.length - 1];
-        if (lastMessage && lastMessage.status && lastMessage.status !== 'complete') {
+        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.status !== 'complete') {
           const stoppedMessage = {
             ...lastMessage,
             status: 'complete' as const
@@ -167,17 +201,57 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId }) => {
     }
   }, []);
 
+  // 处理输入框发送
+  const handleSendMessage = useCallback(() => {
+    if (!inputValue.trim()) return;
+    
+    onMessageSend(inputValue.trim());
+    setInputValue('');
+  }, [inputValue, onMessageSend]);
+
+  // 处理键盘事件
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  }, [handleSendMessage]);
+
   return (
     <div className="chat-room">
+      {/* 聊天内容区域 */}
       <Chat
         chats={messages}
-        showStopGenerate={true}
-        style={commonOuterStyle}
+        style={isAnimated ? animatedStyle : commonOuterStyle}
         onStopGenerator={onStopGenerator}
         roleConfig={roleInfo}
-        onChatsChange={onChatsChange}
-        onMessageSend={onMessageSend}
-      />
+        showStopGenerate = {false}
+        showClearContext = {false}
+       />
+      
+      {/* 固定定位的输入框 */}
+      <div className="fixed-input-area">
+        <div className="input-container">
+          <Input
+            value={inputValue}
+            onChange={setInputValue}
+            onKeyPress={handleKeyPress}
+            placeholder="输入你的消息..."
+            size="large"
+            className="chat-input"
+            suffix={
+              <Button
+                theme="solid"
+                type="primary"
+                icon={<IconSend />}
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim()}
+                className="send-button"
+              />
+            }
+          />
+        </div>
+      </div>
     </div>
   );
 };

@@ -25,6 +25,7 @@ const SimpleChat: React.FC = () => {
   const [showChatRoom, setShowChatRoom] = useState(false); // 新增：控制ChatRoom显示
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null); // 新增：当前会话ID
   const [initialMessage, setInitialMessage] = useState<string>(''); // 新增：初始消息
+  const [currentMessages, setCurrentMessages] = useState<any[]>([]); // 新增：当前会话消息
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 获取动态问候语
@@ -45,6 +46,26 @@ const SimpleChat: React.FC = () => {
     const username = user?.username || '朋友';
     return `${timeGreeting}，${username}`;
   };
+
+  // 获取当前会话消息
+  const fetchCurrentSessionMessages = async (sessionId: string) => {
+    try {
+      const messages = await AiChatService.getSessionMessages(sessionId);
+      setCurrentMessages(messages);
+    } catch (error) {
+      console.error('获取会话消息失败:', error);
+      setCurrentMessages([]);
+    }
+  };
+
+  // 监听当前会话ID变化，获取消息
+  useEffect(() => {
+    if (currentSessionId) {
+      fetchCurrentSessionMessages(currentSessionId);
+    } else {
+      setCurrentMessages([]);
+    }
+  }, [currentSessionId]);
 
   // 自动调整textarea高度
   useEffect(() => {
@@ -185,7 +206,7 @@ const SimpleChat: React.FC = () => {
   // 如果显示ChatRoom，在主页面布局中渲染ChatRoom组件
   if (showChatRoom && currentSessionId) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-5 font-sans transition-all duration-700 ease-in-out">
+      <div className="min-h-screen bg-white p-5 font-sans transition-all duration-700 ease-in-out">
         {/* 左上角侧边栏展开按钮 */}
         {!sidebarVisible && (
           <div className="fixed top-5 left-5 z-50">
@@ -215,7 +236,7 @@ const SimpleChat: React.FC = () => {
         </div>
 
         {/* ChatRoom组件 - 在主页面布局中显示 */}
-        <div className="w-full max-w-4xl mx-auto">
+        <div className="w-full max-w-4xl mx-auto pt-20">
           <ChatRoom
             sessionId={currentSessionId}
             initialMessage={initialMessage}
@@ -226,8 +247,10 @@ const SimpleChat: React.FC = () => {
         {/* 侧边栏 */}
         <AiChatSidebar
           visible={sidebarVisible}
-          onClose={() => setSidebarVisible(false)}
+          onCancel={() => setSidebarVisible(false)}
           onStartChat={handleStartChat}
+          currentSessionId={currentSessionId}
+          currentMessages={currentMessages}
         />
 
         {/* 登录模态框 */}
@@ -386,6 +409,8 @@ const SimpleChat: React.FC = () => {
       <AiChatSidebar
         visible={sidebarVisible}
         onCancel={() => setSidebarVisible(false)}
+        currentSessionId={currentSessionId}
+        currentMessages={currentMessages}
       />
     </div>
   );

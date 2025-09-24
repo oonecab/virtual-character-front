@@ -1,3 +1,33 @@
+/* 侧边栏全局定位修复 */
+.ai-chat-sidebar-sheet {
+  position: fixed !important;
+  z-index: 9999 !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 100vh !important;
+  width: 280px !important; /* 限制侧边栏宽度 */
+}
+
+.ai-chat-sidebar-sheet .semi-sidesheet-content {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 100vh !important;
+  width: 280px !important; /* 限制内容区域宽度 */
+}
+
+/* 确保Semi UI的SideSheet不会覆盖我们的样式 */
+.semi-sidesheet {
+  position: fixed !important;
+  z-index: 9999 !important;
+  width: 280px !important;
+}
+
+.semi-sidesheet-content {
+  position: fixed !important;
+  width: 280px !important;
+}
+
 .ai-chat-sidebar {
   --sidebar-bg: #ffffff;
   --primary-color: #4CC3FA;
@@ -17,7 +47,7 @@
   background: linear-gradient(135deg, #4CC3FA 0%, #36A3F7 100%);
   color: white;
   border-bottom: none;
-  padding: 20px 24px;
+  padding: 0px;
 }
 
 .ai-chat-sidebar .semi-sidesheet-header .semi-sidesheet-header-text {
@@ -150,7 +180,25 @@
   border-top: 1px solid #F7F8FA;
 }
 
-/* 滚动条样式 */
+/* 滚动条样式 - 只应用于历史记录区域 */
+.ai-chat-sidebar-sheet .history-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ai-chat-sidebar-sheet .history-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-chat-sidebar-sheet .history-scroll-area::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: 2px;
+}
+
+.ai-chat-sidebar-sheet .history-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* 移除原有的滚动条样式，避免应用到整个侧边栏 */
 .conversation-list::-webkit-scrollbar {
   width: 4px;
 }
