@@ -9,6 +9,7 @@ import LoginModal from '../LoginModal/LoginModal';
 import RegisterModal from '../RegisterModal/RegisterModal';
 import { useAuth } from '../../contexts/AuthContext';
 import AiChatService from '../../services/aiChatService';
+import historyService from '../../services/historyService';
 import AiChatSidebar from '../AiChatSidebar/AiChatSidebar';
 import ChatRoom from '../ChatRoom/ChatRoom';
 
@@ -187,12 +188,40 @@ const SimpleChat: React.FC = () => {
         setCurrentSessionId(sessionId);
         setInitialMessage(message);
         setShowChatRoom(true);
+        setCurrentMessages([]);
         // 跳转到带有sessionId的URL
         router.push(`/ai-characters?sessionId=${sessionId}`);
       }
     } catch (error) {
       console.error('开始聊天失败:', error);
       Toast.error('开始聊天失败，请重试');
+    }
+  };
+
+  // 处理选择历史会话
+  const handleSelectSession = async (sessionId: string) => {
+    try {
+      console.log('🔄 开始切换到历史会话:', sessionId);
+      console.log('🔍 handleSelectSession 函数被调用，参数:', sessionId);
+      
+      // 切换到聊天模式
+      setCurrentSessionId(sessionId);
+      setShowChatRoom(true);
+      
+      // 获取历史消息
+      console.log('📡 正在获取历史消息...');
+      const historyMessages = await historyService.getSessionHistory(sessionId);
+      console.log('📨 获取到历史消息:', historyMessages);
+      
+      const convertedMessages = historyService.convertToMessages(historyMessages);
+      console.log('🔄 转换后的消息:', convertedMessages);
+      
+      setCurrentMessages(convertedMessages);
+      
+      Toast.success('已切换到历史会话');
+    } catch (error) {
+      console.error('❌ 切换历史会话失败:', error);
+      Toast.error('切换历史会话失败');
     }
   };
 
@@ -241,6 +270,7 @@ const SimpleChat: React.FC = () => {
             sessionId={currentSessionId}
             initialMessage={initialMessage}
             onBack={handleBackToMain}
+            historyMessages={currentMessages}
           />
         </div>
 
@@ -251,7 +281,10 @@ const SimpleChat: React.FC = () => {
           onStartChat={handleStartChat}
           currentSessionId={currentSessionId}
           currentMessages={currentMessages}
+          onSelectSession={handleSelectSession}
         />
+
+        {/* 调试信息 - 移除，不再需要 */}
 
         {/* 登录模态框 */}
         <LoginModal
@@ -409,8 +442,10 @@ const SimpleChat: React.FC = () => {
       <AiChatSidebar
         visible={sidebarVisible}
         onCancel={() => setSidebarVisible(false)}
+        onStartChat={handleStartChat}
         currentSessionId={currentSessionId}
         currentMessages={currentMessages}
+        onSelectSession={handleSelectSession}
       />
     </div>
   );

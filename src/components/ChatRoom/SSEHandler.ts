@@ -34,8 +34,8 @@ export class SSEHandler {
   private connectionId = 0; // 用于标识连接，避免竞争
 
   // 打字机效果配置
-  private readonly TYPEWRITER_DELAY = 30; // 每个字符的延迟（毫秒）
-  private readonly BATCH_SIZE = 2; // 每次处理的字符数
+  private readonly TYPEWRITER_DELAY = 50; // 每个字符的延迟（毫秒）
+  private readonly BATCH_SIZE = 1; // 每次处理的字符数（逐字输出）
 
   constructor(options: SSEHandlerOptions) {
     this.options = options;

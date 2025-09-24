@@ -19,6 +19,8 @@ import {
     IconSend
 } from '@douyinfe/semi-icons';
 import AiChatService, { Message, ChatSession } from '../../services/aiChatService';
+import historyService, { ConversationSession, HistoryMessage } from '../../services/historyService';
+import "./AiChatSidebar.css"
 
 const { Text } = Typography;
 
@@ -29,6 +31,7 @@ interface AiChatSidebarProps {
   onStartChat?: (message: string) => void; // 新增：开始聊天的回调
   currentSessionId?: string; // 当前会话ID
   currentMessages?: Message[]; // 当前会话的消息历史
+  onSelectSession?: (sessionId: string) => void; // 新增：选择历史会话的回调
 }
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({ 
@@ -37,39 +40,41 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   placement = 'left',
   onStartChat,
   currentSessionId,
-  currentMessages = []
+  currentMessages = [],
+  onSelectSession
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [userSessions, setUserSessions] = useState<ChatSession[]>([]);
+  const [conversationSessions, setConversationSessions] = useState<ConversationSession[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 获取用户历史会话列表
+  // 获取用户会话列表
   const fetchUserSessions = async () => {
     try {
       setLoading(true);
-      // 使用API文档中的分页查询会话列表接口
-      const response = await fetch('/api/xunzhi/v1/ai/conversations?current=1&size=50', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const sessions = await AiChatService.getUserSessions();
+      setUserSessions(sessions);
+    } catch (error) {
+      console.error('获取用户会话失败:', error);
+      Toast.error('获取用户会话失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 获取历史会话列表
+  const fetchConversationSessions = async () => {
+    try {
+      setLoading(true);
+      const result = await historyService.getConversations({
+        current: 1,
+        size: 20,
+        status: 1 // 只获取进行中的会话
       });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data && result.data.records) {
-          const sessions = result.data.records.map((item: any) => ({
-            sessionId: item.sessionId,
-            title: item.title,
-            createdAt: new Date(item.createTime),
-            updatedAt: new Date(item.lastMessageTime || item.createTime),
-            messageCount: item.messageCount || 0
-          }));
-          setUserSessions(sessions);
-        }
-      }
+      setConversationSessions(result.records);
     } catch (error) {
       console.error('获取历史会话失败:', error);
+      Toast.error('获取历史会话失败');
     } finally {
       setLoading(false);
     }
@@ -77,8 +82,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   // 首次打开侧边栏时拉取历史对话
   useEffect(() => {
-    if (visible && userSessions.length === 0) {
-      fetchUserSessions();
+    if (visible && conversationSessions.length === 0) {
+      fetchConversationSessions();
     }
   }, [visible]);
 
@@ -90,23 +95,24 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
-  // 开始聊天
-  const handleStartChat = () => {
-    if (!inputValue.trim()) {
-      Toast.warning('请输入消息内容');
-      return;
+  // 处理选择历史会话
+  const handleSelectSession = async (sessionId: string) => {
+    try {
+      console.log('🎯 AiChatSidebar: 点击历史会话卡片:', sessionId);
+      
+      if (onSelectSession) {
+        console.log('📞 调用 onSelectSession 回调');
+        onSelectSession(sessionId);
+      } else {
+        console.warn('⚠️ onSelectSession 回调未定义');
+      }
+      
+      // 关闭侧边栏
+      onCancel();
+    } catch (error) {
+      console.error('❌ 选择会话失败:', error);
+      Toast.error('选择会话失败');
     }
-
-    const message = inputValue.trim();
-    setInputValue(''); // 清空输入框
-    
-    // 调用父组件的回调函数
-    if (onStartChat) {
-      onStartChat(message);
-    }
-    
-    // 关闭侧边栏
-    onCancel();
   };
 
   // 格式化时间显示
@@ -273,40 +279,38 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       <SideSheet
           title={null}
           visible={visible}
-          onCancel={onCancel} // 之前你写的onCancel={() => {}}是空函数，可能导致关闭失效
-          placement="left" // 组件自动处理左侧定位（left:0）
-          width={280} // 强制宽度280px，不会被拉伸
+          onCancel={onCancel}
+          placement="left"
+          width={280}
           mask={false}
-          disableScroll={true} // 禁用整个侧边栏的滚动
+          disableScroll={false} // 修复：允许页面滚动，只在侧边栏内部控制滚动
           closeIcon={false}
           closable={false}
           className="ai-chat-sidebar-sheet"
           style={{
               backgroundColor: '#fafafa',
               border: 'none',
-              // 移除自定义position:fixed，改用组件默认定位（placement="left"会自动加fixed+left:0）
               zIndex: 9999,
-              height: '100vh', // 强制全屏高度，避免纵向拉伸
+              height: '100vh',
           }}
       >
       {/* 侧边栏内容容器 */}
           <div style={{
-              height: '100vh', // 固定内部容器高度为全屏
+              height: '100vh',
               display: 'flex',
               flexDirection: 'column',
               backgroundColor: '#fafafa',
-              overflow: 'hidden', // 关键：隐藏内部超出的内容，防止撑开侧边栏
+              overflow: 'hidden', // 防止侧边栏内容溢出
           }}>
               {/* 头部区域（关闭按钮、按钮组）- 高度固定 */}
               <div style={{
                   padding: '0px 0px 12px 16px',
                   display: 'flex',
-                  justifyContent: 'flex-end', // 修复关闭按钮位置（你之前写的marginLeft:auto可能导致错位）
+                  justifyContent: 'flex-end',
                   alignItems: 'center',
                   backgroundColor: '#fafafa',
-                  // 给头部加固定高度，避免被内部元素拉伸
                   height: 'auto',
-                  flexShrink: 0, // 防止头部区域被压缩
+                  flexShrink: 0,
               }}>
           <Button 
             icon={<IconClose />} 
@@ -323,7 +327,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           {/* 按钮区域 - 固定高度，不参与滚动 */}
           <div style={{ 
             padding: '0 16px', 
-            flexShrink: 0, // 防止按钮区域被压缩
+            flexShrink: 0,
             backgroundColor: '#fafafa'
           }}>
           {/* AI角色扮演按钮 */}
@@ -402,17 +406,17 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         </div>
               {/* 历史对话区域（关键：限制高度，内部滚动） */}
               <div style={{
-                  flex: 1, // 占满剩余高度
+                  flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
-                  minHeight: 0, // 确保flex子元素可以收缩
-                  overflow: 'hidden', // 防止整个区域溢出
+                  minHeight: 0,
+                  overflow: 'hidden',
               }}>
                 {/* 历史对话标题 - 固定不滚动 */}
                 <div style={{
-                  padding: '0 16px 8px 16px',
-                  flexShrink: 0,
-                  backgroundColor: '#fafafa'
+                  padding: '16px 16px 8px 16px',
+                  backgroundColor: '#fafafa',
+                  flexShrink: 0
                 }}>
                   <Text style={{ 
                     fontSize: '13px',
@@ -429,9 +433,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   style={{
                     flex: 1,
                     padding: '0 8px',
-                    overflowY: 'auto', // 只有这个区域可以滚动
+                    overflowY: 'auto',
                     overflowX: 'hidden',
-                    minHeight: 0, // 确保可以收缩
+                    minHeight: 0,
                   }}
                 >
           
@@ -444,7 +448,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             }}>
               <Spin size="small" />
             </div>
-          ) : userSessions.length === 0 ? (
+          ) : conversationSessions.length === 0 ? (
              <Empty
                image={<IconComment size="large" style={{ opacity: 0.5 }} />}
                description="暂无历史对话"
@@ -456,8 +460,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
              />
            ) : (
             <List
-              dataSource={userSessions}
-              renderItem={(session: ChatSession) => (
+              dataSource={conversationSessions}
+              renderItem={(session: ConversationSession) => (
                 <List.Item
                   style={{
                     padding: '8px',
@@ -465,17 +469,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                     borderRadius: '8px',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s ease',
-                    backgroundColor: 'transparent'
+                    backgroundColor: currentSessionId === session.sessionId ? '#e6f7ff' : 'transparent'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f0f0f0';
+                    if (currentSessionId !== session.sessionId) {
+                      e.currentTarget.style.backgroundColor = '#f0f0f0';
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
+                    if (currentSessionId !== session.sessionId) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
                   }}
                   onClick={() => {
-                    // 可以添加点击历史对话的逻辑
-                    console.log('点击历史对话:', session.sessionId);
+                    handleSelectSession(session.sessionId);
                   }}
                 >
                   <div style={{ width: '100%' }}>
@@ -490,7 +497,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                         style={{
                           fontSize: '14px',
                           color: '#1a1a1a',
-                          fontWeight: 400,
+                          fontWeight: currentSessionId === session.sessionId ? 500 : 400,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -500,17 +507,35 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                         {session.title || `对话 ${session.sessionId.slice(-6)}`}
                       </Text>
                     </div>
-                    <Text
-                      style={{
-                        fontSize: '12px',
-                        color: '#999',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {formatTime(session.updatedAt || session.createdAt || new Date())}
-                    </Text>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <Text
+                        style={{
+                          fontSize: '12px',
+                          color: '#999',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          flex: 1
+                        }}
+                      >
+                        {historyService.formatTime(session.lastMessageTime || session.createTime)}
+                      </Text>
+                      {session.messageCount > 0 && (
+                        <Text
+                          style={{
+                            fontSize: '11px',
+                            color: '#999',
+                            marginLeft: '8px'
+                          }}
+                        >
+                          {session.messageCount}条消息
+                        </Text>
+                      )}
+                    </div>
                   </div>
                 </List.Item>
               )}

@@ -65,7 +65,18 @@
     padding: 8px;
   }
 }
+
+/* 聊天消息内容样式 */
+.chat-message-content {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 移除之前的Markdown样式，让Semi UI的MarkdownRender使用默认样式 */
+
 /* 强制隐藏Semi UI Chat组件的默认输入框 */
-.chat-room .semi-chat .semi-chat-inputBox-container {
-    display: none !important; /* 单这一行就够：隐藏且不占空间 */
+/* 更高优先级：添加父元素层级或标签名 */
+body .chat-room div.semi-chat .semi-chat-inputBox-container {
+    display: none !important;
 }

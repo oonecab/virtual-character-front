@@ -1,15 +1,20 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Chat, Input, Button, Spin, Toast } from '@douyinfe/semi-ui';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Chat, Input, Button, Spin, Toast, MarkdownRender } from '@douyinfe/semi-ui';
 import { IconSend } from '@douyinfe/semi-icons';
-import { SSEHandler, SSEMessage } from './SSEHandler';
+import {SSEHandler, SSEMessage} from './SSEHandler';
 import './ChatRoom.css';
 
 interface ChatRoomProps {
   sessionId: string;
   initialMessage?: string;
   onBack?: () => void;
+  historyMessages?: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: Date;
+  }>;
 }
 
 // 连接状态类型
@@ -38,7 +43,7 @@ const animatedStyle = {
   transform: 'translateY(0)',
 };
 
-const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }) => {
+const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack, historyMessages }) => {
   const [messages, setMessages] = useState<SSEMessage[]>([]);
   const [isAnimated, setIsAnimated] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -67,6 +72,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
       },
       onComplete: (finalContent: string) => {
         console.log('✅ SSE完成:', finalContent);
+        setIsLoading(false);
         // 标记最后一条消息为完成状态
         setMessages(prevMessages => {
           if (!prevMessages || prevMessages.length === 0) return prevMessages;
@@ -84,6 +90,15 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
       },
       onError: (error: Error) => {
         console.error('❌ SSE错误:', error);
+        setIsLoading(false);
+        setConnectionStatus('error');
+        
+        // 显示错误提示
+        Toast.error({
+          content: `连接错误: ${error.message}`,
+          duration: 3000,
+        });
+        
         // 标记最后一条消息为错误状态
         setMessages(prevMessages => {
           if (!prevMessages || prevMessages.length === 0) return prevMessages;
@@ -92,14 +107,31 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
             const errorMessage = {
               ...lastMessage,
               content: '抱歉，发生了错误，请重试。',
-              status: 'complete' as const
+              status: 'error' as const
             };
             return [...prevMessages.slice(0, -1), errorMessage];
           }
           return prevMessages;
         });
+      },
+      onStatusChange: (status) => {
+        console.log('🔄 连接状态变化:', status);
+        setConnectionStatus(status);
       }
     });
+
+    // 如果有历史消息，先加载历史消息
+    if (historyMessages && historyMessages.length > 0) {
+      const convertedMessages: SSEMessage[] = historyMessages.map((msg, index) => ({
+        id: `history_${index}`,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        status: 'complete' as const
+      }));
+      setMessages(convertedMessages);
+      messageSeqRef.current = historyMessages.length + 1;
+    }
 
     // 启动渐进动画
     const animationTimer = setTimeout(() => {
@@ -121,7 +153,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
     return () => {
       clearTimeout(animationTimer);
     };
-  }, [initialMessage]);
+  }, [initialMessage, historyMessages]);
 
   // 生成唯一消息ID
   const getMessageId = useCallback(() => {
@@ -133,6 +165,15 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
   // 发送消息处理
   const onMessageSend = useCallback(async (content: string, attachment?: any) => {
     console.log('📤 发送消息:', content);
+    
+    // 检查是否正在加载中
+    if (isLoading) {
+      Toast.warning({
+        content: '请等待当前消息完成后再发送',
+        duration: 2000,
+      });
+      return;
+    }
     
     // 添加用户消息
     const userMessage: SSEMessage = {
@@ -157,33 +198,43 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
       assistantMessage
     ]);
 
+    setIsLoading(true);
+
     // 启动SSE连接
     if (sseHandlerRef.current) {
-      // 延迟一下，确保消息已经添加到状态中
-      setTimeout(async () => {
-        setMessages(prevMessages => {
-          const lastMessage = prevMessages[prevMessages.length - 1];
-          const updatedMessage = {
-            ...lastMessage,
-            status: 'incomplete' as const
-          };
-          return [...prevMessages.slice(0, -1), updatedMessage];
-        });
-        
-        await sseHandlerRef.current?.startConnection(
+      // 立即更新消息状态为不完整，并启动连接
+      setMessages(prevMessages => {
+        const lastMessage = prevMessages[prevMessages.length - 1];
+        const updatedMessage = {
+          ...lastMessage,
+          status: 'incomplete' as const
+        };
+        return [...prevMessages.slice(0, -1), updatedMessage];
+      });
+      
+      try {
+        await sseHandlerRef.current.startConnection(
           sessionId,
           content,
           messageSeqRef.current++
         );
-      }, 100);
+      } catch (error) {
+        console.error('❌ 启动连接失败:', error);
+        setIsLoading(false);
+        Toast.error({
+          content: '发送消息失败，请重试',
+          duration: 3000,
+        });
+      }
     }
-  }, [sessionId]);
+  }, [sessionId, isLoading, getMessageId]);
 
   // 停止生成处理
   const onStopGenerator = useCallback(() => {
     console.log('⏹️ 停止生成');
     if (sseHandlerRef.current) {
       sseHandlerRef.current.closeConnection();
+      setIsLoading(false);
       
       // 将最后一条消息标记为完成
       setMessages(prevMessages => {
@@ -198,12 +249,23 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
         }
         return prevMessages;
       });
+      
+      Toast.info({
+        content: '已停止生成',
+        duration: 1000,
+      });
     }
   }, []);
 
   // 处理输入框发送
   const handleSendMessage = useCallback(() => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim()) {
+      Toast.warning({
+        content: '请输入消息内容',
+        duration: 1000,
+      });
+      return;
+    }
     
     onMessageSend(inputValue.trim());
     setInputValue('');
@@ -217,6 +279,19 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
     }
   }, [handleSendMessage]);
 
+  // 清理资源
+  useEffect(() => {
+    return () => {
+      if (sseHandlerRef.current) {
+        sseHandlerRef.current.closeConnection();
+      }
+    };
+  }, []);
+
+
+
+
+
   return (
     <div className="chat-room">
       {/* 聊天内容区域 */}
@@ -225,9 +300,15 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
         style={isAnimated ? animatedStyle : commonOuterStyle}
         onStopGenerator={onStopGenerator}
         roleConfig={roleInfo}
-        showStopGenerate = {false}
-        showClearContext = {false}
-       />
+        showStopGenerate={false}
+        showClearContext={false}
+        showInput={false}
+        inputAreaProps={{ style: { display: 'none' } }}
+        renderChatBoxAction={() => null}
+        markdownRenderProps={{
+            className: 'chat-message-content' // 自定义样式类名
+        }}
+      />
       
       {/* 固定定位的输入框 */}
       <div className="fixed-input-area">
@@ -235,18 +316,20 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack }
           <Input
             value={inputValue}
             onChange={setInputValue}
-            onKeyPress={handleKeyPress}
-            placeholder="输入你的消息..."
+            onKeyDown={handleKeyPress}
+            placeholder={isLoading ? "AI正在回复中..." : "输入你的消息... (Enter发送，Shift+Enter换行)"}
             size="large"
             className="chat-input"
+            disabled={isLoading}
             suffix={
               <Button
                 theme="solid"
                 type="primary"
                 icon={<IconSend />}
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isLoading}
                 className="send-button"
+                loading={isLoading}
               />
             }
           />

@@ -43,11 +43,16 @@
   background: var(--sidebar-bg);
 }
 
-.ai-chat-sidebar .semi-sidesheet-header {
-  background: linear-gradient(135deg, #4CC3FA 0%, #36A3F7 100%);
+/* 覆盖Semi UI的body样式 - 使用更高优先级 */
+.ai-chat-sidebar-sheet .semi-sidesheet-body {
+  overflow: hidden !important;
+}
+
+.ai-chat-sidebar-sheet .semi-sidesheet-header {
+  background: linear-gradient(135deg, #ffffff 0%, #fbfbfb 100%);
   color: white;
   border-bottom: none;
-  padding: 0px;
+  padding: 3px !important;
 }
 
 .ai-chat-sidebar .semi-sidesheet-header .semi-sidesheet-header-text {
