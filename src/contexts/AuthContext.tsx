@@ -42,26 +42,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       const token = TokenManager.getToken();
-      if (token) {
+      const savedUserInfo = TokenManager.getUserInfo();
+      
+      if (token && savedUserInfo) {
+        // 如果有保存的用户信息，直接使用
+        setUser({
+          id: parseInt(savedUserInfo.id),
+          username: savedUserInfo.username,
+          realName: savedUserInfo.realName || '',
+          mail: savedUserInfo.mail || '',
+          phone: savedUserInfo.phone || '',
+          isAdmin: false, // 根据实际需要调整
+        });
+        setLoading(false);
+      } else if (token) {
         try {
-          // 调用获取用户信息的接口
+          // 如果只有token没有用户信息，调用接口获取
           const userResponse = await UserManagementService.getCurrentUser();
           if (userResponse && userResponse.data) {
-            setUser({
+            const userInfo = {
               id: userResponse.data.id,
               username: userResponse.data.username,
               realName: userResponse.data.realName,
               mail: userResponse.data.mail,
               phone: userResponse.data.phone,
               isAdmin: false, // 根据实际需要调整
+            };
+            setUser(userInfo);
+            // 保存用户信息到本地存储
+            TokenManager.setUserInfo({
+              id: userResponse.data.id.toString(),
+              username: userResponse.data.username,
+              realName: userResponse.data.realName,
+              mail: userResponse.data.mail,
+              phone: userResponse.data.phone,
             });
           }
         } catch (error) {
           console.error('获取用户信息失败:', error);
           TokenManager.removeToken();
         }
+        setLoading(false);
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();
@@ -69,6 +93,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = (token: string, userInfo: User) => {
     TokenManager.setToken(token);
+    // 保存用户信息到本地存储
+    TokenManager.setUserInfo({
+      id: userInfo.id ? userInfo.id.toString() : '',
+      username: userInfo.username || '',
+      realName: userInfo.realName || '',
+      mail: userInfo.mail || '',
+      phone: userInfo.phone || '',
+    });
     setUser(userInfo);
   };
 

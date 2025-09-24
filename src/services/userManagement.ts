@@ -50,6 +50,8 @@ export interface UserActualRespDTO {
   realName: string;
   phone: string;
   mail: string;
+  isAdmin: boolean;
+  token: string;
 }
 
 // ===== 统一响应结构 =====

@@ -31,12 +31,12 @@ interface CharacterChatProps {
 }
 
 const CharacterChat: React.FC<CharacterChatProps> = ({ characterId }) => {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [character, setCharacter] = useState<Character | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const router = useRouter();
 
@@ -68,13 +68,18 @@ const CharacterChat: React.FC<CharacterChatProps> = ({ characterId }) => {
     }
   }, [characterId]);
 
+  // 自动滚动到底部
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      // 使用页面级滚动，滚动到页面底部
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+    }
   }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -255,8 +260,6 @@ const CharacterChat: React.FC<CharacterChatProps> = ({ characterId }) => {
               </div>
             </div>
           )}
-          
-          <div ref={messagesEndRef} />
         </div>
         
         {/* 输入区域 */}
