@@ -118,9 +118,14 @@ export class AiChatService {
    */
   static async getSessionMessages(sessionId: string): Promise<Message[]> {
     try {
+      console.log('🌐 AiChatService.getSessionMessages 被调用，sessionId:', sessionId);
+      console.log('📡 发起GET请求到:', `/xunzhi/v1/ai/sessions/${sessionId}/messages`);
+      
       const response = await request.get<ApiResponse<Message[]>>(
         `/xunzhi/v1/ai/sessions/${sessionId}/messages`
       );
+
+      console.log('📨 AiChatService.getSessionMessages API响应:', response);
 
       if (response.success || response.code === '0' || response.code === '200') {
         return response.data || [];
@@ -128,7 +133,7 @@ export class AiChatService {
         throw new Error(response.message || '获取消息历史失败');
       }
     } catch (error) {
-      console.error('获取会话消息失败:', error);
+      console.error('❌ AiChatService.getSessionMessages 失败:', error);
       return [];
     }
   }

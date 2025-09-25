@@ -4,7 +4,7 @@ import { request } from '../utils/request';
 export interface HistoryMessage {
   id: string;
   sessionId: string;
-  messageType: number; // 0-用户消息，1-AI回复
+  messageType: number; // 1-用户消息，2-AI回复
   messageContent: string;
   messageSeq: number;
   tokenCount: number;
@@ -184,7 +184,7 @@ class HistoryService {
     timestamp: Date;
   }> {
     return historyMessages.map(msg => ({
-      role: msg.messageType === 0 ? 'user' : 'assistant',
+      role: msg.messageType === 1 ? 'user' : 'assistant',
       content: msg.messageContent,
       timestamp: new Date(msg.createTime)
     }));

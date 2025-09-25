@@ -117,6 +117,12 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack, 
       onStatusChange: (status) => {
         console.log('🔄 连接状态变化:', status);
         setConnectionStatus(status);
+        
+        // 添加详细的状态变化日志
+        if (status === 'disconnected') {
+          console.log('⚠️ SSE连接断开，可能触发回退逻辑');
+          console.trace('📍 disconnected状态调用栈:');
+        }
       }
     });
 

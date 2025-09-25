@@ -20,6 +20,7 @@ import {
 } from '@douyinfe/semi-icons';
 import AiChatService, { Message, ChatSession } from '../../services/aiChatService';
 import historyService, { ConversationSession, HistoryMessage } from '../../services/historyService';
+import { Message as ChatMessage, Session as ChatSessionType } from '../../contexts/ChatContext';
 import "./AiChatSidebar.css"
 
 const { Text } = Typography;
@@ -29,9 +30,10 @@ interface AiChatSidebarProps {
   onCancel: () => void;
   placement?: 'left' | 'right' | 'top' | 'bottom';
   onStartChat?: (message: string) => void; // 新增：开始聊天的回调
-  currentSessionId?: string; // 当前会话ID
-  currentMessages?: Message[]; // 当前会话的消息历史
+  currentSessionId?: string | null; // 当前会话ID
+  currentMessages?: ChatMessage[]; // 当前会话的消息历史
   onSelectSession?: (sessionId: string) => void; // 新增：选择历史会话的回调
+  onNewChat?: () => void; // 新增：新对话的回调
 }
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({ 
@@ -41,7 +43,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   onStartChat,
   currentSessionId,
   currentMessages = [],
-  onSelectSession
+  onSelectSession,
+  onNewChat
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [userSessions, setUserSessions] = useState<ChatSession[]>([]);
@@ -87,15 +90,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   }, [visible]);
 
-  // 处理键盘事件
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleStartChat();
-    }
-  };
-
-  // 处理选择历史会话
+// 处理选择历史会话
   const handleSelectSession = async (sessionId: string) => {
     try {
       console.log('🎯 AiChatSidebar: 点击历史会话卡片:', sessionId);
@@ -387,7 +382,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             icon={<IconPlus />}
             onClick={() => {
               setInputValue('');
-              // 可以添加新对话逻辑
+              // 调用新对话回调
+              if (onNewChat) {
+                onNewChat();
+              }
+              // 关闭侧边栏
+              onCancel();
             }}
             block
             size="large"
@@ -482,6 +482,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                     }
                   }}
                   onClick={() => {
+                    console.log('🖱️ 用户点击历史会话卡片:', session.sessionId);
+                    console.log('📋 会话详情:', session);
                     handleSelectSession(session.sessionId);
                   }}
                 >
