@@ -12,8 +12,8 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export const metadata: Metadata = {
-  title: "后台管理系统",
-  description: "基于Next.js和Ant Design的后台管理系统",
+  title: "肉包",
+  description: "基于Next.js的AI应用平台",
 };
 
 export default function RootLayout({

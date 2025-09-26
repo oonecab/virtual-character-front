@@ -32,6 +32,8 @@ interface AiChatSidebarProps {
   currentSessionId?: string; // 当前会话ID
   currentMessages?: Message[]; // 当前会话的消息历史
   onSelectSession?: (sessionId: string) => void; // 新增：选择历史会话的回调
+  onNewChat?: () => void; // 新增：新对话的回调
+  onOpenAppMarket?: () => void; // 新增：打开应用市场的回调
 }
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({ 
@@ -41,7 +43,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   onStartChat,
   currentSessionId,
   currentMessages = [],
-  onSelectSession
+  onSelectSession,
+  onNewChat,
+  onOpenAppMarket
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [userSessions, setUserSessions] = useState<ChatSession[]>([]);
@@ -87,15 +91,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   }, [visible]);
 
-  // 处理键盘事件
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleStartChat();
-    }
-  };
-
-  // 处理选择历史会话
+// 处理选择历史会话
   const handleSelectSession = async (sessionId: string) => {
     try {
       console.log('🎯 AiChatSidebar: 点击历史会话卡片:', sessionId);
@@ -337,8 +333,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   type="primary"
                   icon={<IconPlus />}
                   onClick={() => {
-                      setInputValue('');
-                      // 可以添加新对话逻辑
+                      // 调用打开应用市场回调
+                      if (onOpenAppMarket) {
+                        onOpenAppMarket();
+                      }
+                      // 关闭侧边栏
+                      onCancel();
                   }}
                   block
                   size="large"
@@ -387,7 +387,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             icon={<IconPlus />}
             onClick={() => {
               setInputValue('');
-              // 可以添加新对话逻辑
+              // 调用新对话回调
+              if (onNewChat) {
+                onNewChat();
+              }
+              // 关闭侧边栏
+              onCancel();
             }}
             block
             size="large"
@@ -482,6 +487,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                     }
                   }}
                   onClick={() => {
+                    console.log('🖱️ 用户点击历史会话卡片:', session.sessionId);
+                    console.log('📋 会话详情:', session);
                     handleSelectSession(session.sessionId);
                   }}
                 >

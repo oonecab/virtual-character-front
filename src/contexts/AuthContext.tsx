@@ -114,8 +114,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // 无论接口调用成功与否，都清除本地状态
       TokenManager.removeToken();
       setUser(null);
-      // 跳转到登录页
-      window.location.href = '/login';
+      // 不再跳转到登录页，保持在当前页面
+      console.log('用户已退出登录');
     }
   };
 

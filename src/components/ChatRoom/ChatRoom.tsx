@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Chat, Input, Button, Spin, Toast, MarkdownRender } from '@douyinfe/semi-ui';
+import { Chat, Input, Button, Toast } from '@douyinfe/semi-ui';
 import { IconSend } from '@douyinfe/semi-icons';
 import {SSEHandler, SSEMessage} from './SSEHandler';
 import './ChatRoom.css';
@@ -10,6 +10,7 @@ interface ChatRoomProps {
   sessionId: string;
   initialMessage?: string;
   onBack?: () => void;
+  onNewChat?: () => void;
   historyMessages?: Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -43,7 +44,7 @@ const animatedStyle = {
   transform: 'translateY(0)',
 };
 
-const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack, historyMessages }) => {
+const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack, onNewChat, historyMessages }) => {
   const [messages, setMessages] = useState<SSEMessage[]>([]);
   const [isAnimated, setIsAnimated] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -117,6 +118,12 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ sessionId, initialMessage, onBack, 
       onStatusChange: (status) => {
         console.log('🔄 连接状态变化:', status);
         setConnectionStatus(status);
+        
+        // 添加详细的状态变化日志
+        if (status === 'disconnected') {
+          console.log('⚠️ SSE连接断开，可能触发回退逻辑');
+          console.trace('📍 disconnected状态调用栈:');
+        }
       }
     });
 
