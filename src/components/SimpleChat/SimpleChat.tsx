@@ -9,6 +9,7 @@ import RegisterModal from '../RegisterModal/RegisterModal';
 import AiChatSidebar from '../AiChatSidebar/AiChatSidebar';
 import ChatRoom from '../ChatRoom/ChatRoom';
 import AppMarket from '../AppMarket/AppMarket';
+import AgentChatRoom from '../AgentChatRoom/AgentChatRoom';
 import { useSessionManager } from '../../hooks/useSessionManager';
 import { useInputManager } from '../../hooks/useInputManager';
 import { useChatManager } from '../../hooks/useChatManager';
@@ -105,6 +106,12 @@ const SimpleChat: React.FC = () => {
       uiManager.handleAppMarketBackToMain();
     }
     
+    // 如果当前在AgentChatRoom模式，先关闭AgentChatRoom
+    if (uiManager.showAgentChatRoom) {
+      console.log('🔙 从 AgentChatRoom 回退到主页面（新对话）');
+      uiManager.handleAgentChatRoomClose();
+    }
+    
     // 重置 sessionManager 状态
     sessionManager.handleNewChat();
     // 重置 chatManager 状态
@@ -118,32 +125,8 @@ const SimpleChat: React.FC = () => {
   const handleCharacterSelect = async (character: any) => {
     console.log('🎭 选择角色:', character);
     
-    // 关闭应用市场
-      uiManager.handleAppMarketClose();
-    
-    // 创建角色相关的初始消息
-    const initialMessage = `你好！我想和${character.name}聊天。`;
-    
-    // 创建新会话
-    const sessionId = await inputManager.createNewSession(initialMessage);
-    console.log('🆔 为角色创建的会话ID:', sessionId);
-    
-    if (sessionId) {
-      console.log('✅ 角色会话创建成功，开始设置会话状态');
-      
-      await sessionManager.setSessionIdWithValidation(sessionId, {
-        setShowChatRoom: true,
-        setInitialMessage: initialMessage,
-        updateUrl: true
-      });
-      
-      console.log('🔍 角色会话设置后的状态:', {
-        showChatRoom: sessionManager.showChatRoom,
-        currentSessionId: sessionManager.currentSessionId
-      });
-    } else {
-      console.error('❌ 角色会话创建失败');
-    }
+    // 直接调用 uiManager 的 handleAgentChatRoomOpen 方法
+    uiManager.handleAgentChatRoomOpen(character);
   };
 
   // AppMarket 相关处理函数 - 使用新的统一hook
@@ -188,7 +171,18 @@ const SimpleChat: React.FC = () => {
       />
 
       {/* 主内容区域 - 根据状态显示不同内容 */}
-      {uiManager.showAppMarket ? (
+      {uiManager.showAgentChatRoom && uiManager.selectedAgent ? (
+        // AgentChatRoom 模式
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full max-w-4xl">
+            <AgentChatRoom
+              agent={uiManager.selectedAgent}
+              onBack={uiManager.handleAgentChatRoomBackToAppMarket}
+              onNewChat={handleNewChat}
+            />
+          </div>
+        </div>
+      ) : uiManager.showAppMarket ? (
         // 应用市场模式
         <AppMarket 
           visible={uiManager.showAppMarket}

@@ -7,6 +7,15 @@ interface AppMarketManagerOptions {
   setInitialCharacter?: string;
 }
 
+export interface AgentInfo {
+  id: string;
+  name: string;
+  avatar: string;
+  description: string;
+  prompt?: string;
+  sessionId?: string; // 添加会话 ID 字段
+}
+
 export const useUIManager = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -15,6 +24,10 @@ export const useUIManager = () => {
   const [showAppMarket, setShowAppMarket] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState('');
+  
+  // AgentChatRoom 相关状态
+  const [showAgentChatRoom, setShowAgentChatRoom] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AgentInfo | null>(null);
   
   // Modal 相关状态
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -166,6 +179,105 @@ export const useUIManager = () => {
     setShowLoginModal(true);
   }, []);
 
+  // ==================== AgentChatRoom 相关方法 ====================
+
+  // 打开 AgentChatRoom
+  const handleAgentChatRoomOpen = useCallback(async (agent: AgentInfo) => {
+    console.log('🚀 打开 AgentChatRoom:', agent);
+    
+    try {
+      // 导入会话服务
+      const { agentSessionService } = await import('../services/agentSessionService');
+      
+      // 创建新的 Agent 会话
+      const sessionResponse = await agentSessionService.createSession({
+        agentId: agent.id,
+        agentName: agent.name,
+        agentPrompt: agent.prompt
+      });
+      
+      console.log('✅ Agent 会话创建成功:', sessionResponse);
+      
+      // 更新 URL 显示 sessionId
+      const url = new URL(window.location.href);
+      url.searchParams.set('agentSession', sessionResponse.sessionId);
+      window.history.pushState({}, '', url.toString());
+      
+      // 设置选中的 Agent 和会话信息
+      const agentWithSession = {
+        ...agent,
+        sessionId: sessionResponse.sessionId
+      };
+      
+      console.log('🎯 设置 AgentChatRoom 状态:', {
+        selectedAgent: agentWithSession,
+        showAgentChatRoom: true,
+        showAppMarket: showAppMarket
+      });
+      
+      // 先设置 AgentChatRoom 状态
+      setSelectedAgent(agentWithSession);
+      setShowAgentChatRoom(true);
+      
+      // 然后关闭 AppMarket（如果需要）
+      if (showAppMarket) {
+        setAppMarketState(false, { updateUrl: false });
+      }
+      
+    } catch (error) {
+      console.error('❌ 创建 Agent 会话失败:', error);
+      // 即使会话创建失败，也允许进入聊天室（使用临时会话）
+      const tempSessionId = `temp_${Date.now()}`;
+      const agentWithSession = {
+        ...agent,
+        sessionId: tempSessionId
+      };
+      
+      console.log('🎯 设置 AgentChatRoom 状态 (fallback):', {
+        selectedAgent: agentWithSession,
+        showAgentChatRoom: true,
+        showAppMarket: showAppMarket
+      });
+      
+      // 先设置 AgentChatRoom 状态
+      setSelectedAgent(agentWithSession);
+      setShowAgentChatRoom(true);
+      
+      // 然后关闭 AppMarket（如果需要）
+      if (showAppMarket) {
+        setAppMarketState(false, { updateUrl: false });
+      }
+    }
+  }, [setAppMarketState, showAppMarket]);
+
+  // 关闭 AgentChatRoom
+  const handleAgentChatRoomClose = useCallback(() => {
+    console.log('🔙 关闭 AgentChatRoom');
+    
+    // 清除 URL 中的 sessionId
+    const url = new URL(window.location.href);
+    url.searchParams.delete('agentSession');
+    window.history.pushState({}, '', url.toString());
+    
+    setShowAgentChatRoom(false);
+    setSelectedAgent(null);
+  }, []);
+
+  // 从 AgentChatRoom 返回到 AppMarket
+  const handleAgentChatRoomBackToAppMarket = useCallback(() => {
+    // 保留 URL 中的 sessionId，但返回到 AppMarket
+    setShowAgentChatRoom(false);
+    setSelectedAgent(null);
+    setAppMarketState(true, { updateUrl: false }); // 重新打开 AppMarket
+  }, [setAppMarketState])
+
+  // 重置 AgentChatRoom 状态
+  const resetAgentChatRoomState = useCallback(() => {
+    console.log('🔄 重置 AgentChatRoom 所有状态');
+    setShowAgentChatRoom(false);
+    setSelectedAgent(null);
+  }, []);
+
   // 切换侧边栏显示状态
   const toggleSidebar = useCallback(() => {
     setSidebarVisible(!sidebarVisible);
@@ -185,6 +297,9 @@ export const useUIManager = () => {
     setShowAppMarket(false);
     setSelectedCharacter(null);
     setSearchValue('');
+    // 重置AgentChatRoom状态
+    setShowAgentChatRoom(false);
+    setSelectedAgent(null);
     // 重置Modal状态
     setShowLoginModal(false);
     setShowRegisterModal(false);
@@ -205,6 +320,14 @@ export const useUIManager = () => {
     handleSearchClear,
     resetAppMarketState,
     setAppMarketState,
+    
+    // ==================== AgentChatRoom 状态和方法 ====================
+    showAgentChatRoom,
+    selectedAgent,
+    handleAgentChatRoomOpen,
+    handleAgentChatRoomClose,
+    handleAgentChatRoomBackToAppMarket,
+    resetAgentChatRoomState,
     
     // ==================== Modal 状态和方法 ====================
     user,

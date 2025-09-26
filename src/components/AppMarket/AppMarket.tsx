@@ -1,86 +1,76 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Typography, Space, Row, Col, Button } from '@douyinfe/semi-ui';
-import { IconSearch, IconClose } from '@douyinfe/semi-icons';
+import { Card, Typography } from '@douyinfe/semi-ui';
+import { useUIManager } from '../../hooks';
+import { AiCharacter } from '@/services/aiCharacterService';
+import { AppMarketProps } from './types';
+import { useAppMarketData, useAppMarketAnimation } from './hooks';
+import { SearchSection, CharacterGrid } from './components';
 
 const { Title, Text } = Typography;
 
-interface AppMarketProps {
-  visible: boolean;
-  onClose?: () => void;
-  onSelectCharacter?: (character: any) => void;
-}
-
+/**
+ * AI角色市场组件
+ * 提供AI角色的浏览、搜索和选择功能
+ */
 const AppMarket: React.FC<AppMarketProps> = ({ visible, onClose, onSelectCharacter }) => {
   const [searchValue, setSearchValue] = useState('');
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [shouldRender, setShouldRender] = useState(visible);
+  const { handleAgentChatRoomOpen } = useUIManager();
+  
+  // 使用自定义hooks管理状态和逻辑
+  const { isAnimating, shouldRender } = useAppMarketAnimation(visible);
+  const {
+    aiCharacters,
+    loading,
+    error,
+    loadAiCharacters,
+    loadMore,
+    retry,
+    hasMore
+  } = useAppMarketData();
 
-  // 处理动画状态
+  // 组件显示时加载数据
   useEffect(() => {
     if (visible) {
-      setShouldRender(true);
-      // 延迟一帧开始进入动画
-      requestAnimationFrame(() => {
-        setIsAnimating(true);
-      });
-    } else {
-      setIsAnimating(false);
-      // 等待退出动画完成后再卸载组件
-      const timer = setTimeout(() => {
-        setShouldRender(false);
-      }, 300); // 动画持续时间
-      return () => clearTimeout(timer);
+      loadAiCharacters();
     }
-  }, [visible]);
-  
-  // 处理角色选择
-  const handleCharacterSelect = (character: any) => {
+  }, [visible, loadAiCharacters]);
+
+  /**
+   * 处理角色选择
+   * 将AiCharacter转换为AgentInfo格式并打开聊天室
+   */
+  const handleCharacterSelect = (character: AiCharacter) => {
+    const agentInfo = {
+      id: character.id,
+      name: character.aiName,
+      avatar: character.aiAvatar || '🤖',
+      description: character.description,
+      prompt: character.aiPrompt
+    };
+    
+    // 优先调用传入的回调函数
     if (onSelectCharacter) {
-      onSelectCharacter(character);
+      onSelectCharacter(agentInfo);
+    } else {
+      // 如果没有传入回调，则直接打开 AgentChatRoom
+      handleAgentChatRoomOpen(agentInfo);
     }
   };
-  
-  // AI角色数据
-  const aiCharacters = [
-    {
-      id: 1,
-      name: 'Java开发工程师',
-      description: '专业的Java开发专家，擅长Spring Boot、微服务架构',
-      avatar: '👨‍💻',
-      rating: 4.8,
-      usage: '1.2万人使用',
-      tags: ['编程', '后端'],
-      color: '#FF6B35'
-    },
-    {
-      id: 2,
-      name: '编程忍者',
-      description: '全栈开发专家，精通多种编程语言和框架',
-      avatar: '🥷',
-      rating: 4.9,
-      usage: '8.5千人使用',
-      tags: ['编程', '全栈'],
-      color: '#4ECDC4'
-    },
-    {
-      id: 3,
-      name: 'AI问答',
-      description: '智能问答助手，帮你解答各种问题',
-      avatar: '🤖',
-      rating: 4.7,
-      usage: '2.1万人使用',
-      tags: ['问答', '通用'],
-      color: '#45B7D1'
-    },
-  ];
 
-  // 过滤角色
-  const filteredCharacters = aiCharacters.filter(character =>
-    character.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-    character.description.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  /**
+   * 处理搜索
+   * 支持实时搜索和清空搜索
+   */
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+    if (value.trim()) {
+      loadAiCharacters(1, value);
+    } else {
+      loadAiCharacters(1);
+    }
+  };
 
   if (!shouldRender) {
     return null;
@@ -102,7 +92,6 @@ const AppMarket: React.FC<AppMarketProps> = ({ visible, onClose, onSelectCharact
       transition: 'opacity 0.3s ease-in-out',
       padding: '20px'
     }}>
-      {/* 居中的主容器盒子 */}
       <Card
         style={{
           width: '100%',
@@ -138,25 +127,10 @@ const AppMarket: React.FC<AppMarketProps> = ({ visible, onClose, onSelectCharact
         </div>
 
         {/* 搜索区域 */}
-        <div style={{
-          textAlign: 'center',
-          padding: '30px 40px',
-          borderBottom: '1px solid #f0f0f0'
-        }}>
-          <Input
-            placeholder="搜索 AI 角色..."
-            value={searchValue}
-            onChange={setSearchValue}
-            prefix={<IconSearch />}
-            style={{ 
-              width: '400px', 
-              height: '48px',
-              borderRadius: '24px',
-              fontSize: '16px'
-            }}
-            size="large"
-          />
-        </div>
+        <SearchSection 
+          searchValue={searchValue}
+          onSearch={handleSearch}
+        />
 
         {/* 角色列表区域 */}
         <div style={{
@@ -164,87 +138,16 @@ const AppMarket: React.FC<AppMarketProps> = ({ visible, onClose, onSelectCharact
           padding: '32px',
           overflow: 'auto'
         }}>
-          <Row gutter={[24, 24]}>
-            {filteredCharacters.map((character, index) => (
-              <Col span={8} key={character.id}>
-                <Card
-                    style={{
-                      height: '220px',
-                      borderRadius: '12px',
-                      border: '1px solid #f0f0f0',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      backgroundColor: 'white',
-                      opacity: isAnimating ? 1 : 0,
-                      transform: isAnimating ? 'translateY(0)' : 'translateY(20px)',
-                      transitionDelay: isAnimating ? `${index * 0.1}s` : '0s'
-                    }}
-                    bodyStyle={{
-                      padding: '20px',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between'
-                    }}
-                    hoverable
-                    onClick={() => handleCharacterSelect(character)}
-                  >
-                  <div style={{ 
-                    textAlign: 'center', 
-                    height: '100%', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    justifyContent: 'space-between' 
-                  }}>
-                    <div>
-                      <div style={{ 
-                        fontSize: '40px', 
-                        marginBottom: '12px',
-                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-                      }}>
-                        {character.avatar}
-                      </div>
-                      <Title heading={6} style={{ 
-                        margin: '0 0 8px 0', 
-                        color: character.color,
-                        fontSize: '16px',
-                        fontWeight: 600
-                      }}>
-                        {character.name}
-                      </Title>
-                      <Text size="small" type="tertiary" style={{ 
-                        display: 'block', 
-                        marginBottom: '16px', 
-                        height: '36px', 
-                        overflow: 'hidden',
-                        lineHeight: '18px'
-                      }}>
-                        {character.description}
-                      </Text>
-                    </div>
-                    
-                    <div>
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        alignItems: 'center', 
-                        gap: '16px',
-                        marginBottom: '12px'
-                      }}>
-                        <Text size="small" type="secondary">
-                          ⭐ {character.rating}
-                        </Text>
-                        <Text size="small" type="secondary">
-                          {character.usage}
-                        </Text>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
+          <CharacterGrid
+            characters={aiCharacters}
+            loading={loading}
+            error={error}
+            isAnimating={isAnimating}
+            hasMore={hasMore}
+            onCharacterSelect={handleCharacterSelect}
+            onLoadMore={loadMore}
+            onRetry={retry}
+          />
         </div>
       </Card>
     </div>
