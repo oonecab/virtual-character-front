@@ -20,7 +20,6 @@ import {
 } from '@douyinfe/semi-icons';
 import AiChatService, { Message, ChatSession } from '../../services/aiChatService';
 import historyService, { ConversationSession, HistoryMessage } from '../../services/historyService';
-import { Message as ChatMessage, Session as ChatSessionType } from '../../contexts/ChatContext';
 import "./AiChatSidebar.css"
 
 const { Text } = Typography;
@@ -30,10 +29,11 @@ interface AiChatSidebarProps {
   onCancel: () => void;
   placement?: 'left' | 'right' | 'top' | 'bottom';
   onStartChat?: (message: string) => void; // 新增：开始聊天的回调
-  currentSessionId?: string | null; // 当前会话ID
-  currentMessages?: ChatMessage[]; // 当前会话的消息历史
+  currentSessionId?: string; // 当前会话ID
+  currentMessages?: Message[]; // 当前会话的消息历史
   onSelectSession?: (sessionId: string) => void; // 新增：选择历史会话的回调
   onNewChat?: () => void; // 新增：新对话的回调
+  onOpenAppMarket?: () => void; // 新增：打开应用市场的回调
 }
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({ 
@@ -44,7 +44,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   currentSessionId,
   currentMessages = [],
   onSelectSession,
-  onNewChat
+  onNewChat,
+  onOpenAppMarket
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [userSessions, setUserSessions] = useState<ChatSession[]>([]);
@@ -332,8 +333,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   type="primary"
                   icon={<IconPlus />}
                   onClick={() => {
-                      setInputValue('');
-                      // 可以添加新对话逻辑
+                      // 调用打开应用市场回调
+                      if (onOpenAppMarket) {
+                        onOpenAppMarket();
+                      }
+                      // 关闭侧边栏
+                      onCancel();
                   }}
                   block
                   size="large"

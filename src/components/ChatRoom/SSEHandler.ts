@@ -46,7 +46,7 @@ export class SSEHandler {
    */
   async startConnection(sessionId: string, message: string, messageSeq: number): Promise<void> {
     const currentConnectionId = ++this.connectionId;
-    // console.log(`🚀 SSEHandler: 启动连接 #${currentConnectionId}`, { sessionId, message, messageSeq });
+    console.log(`🚀 SSEHandler: 启动连接 #${currentConnectionId}`, { sessionId, message, messageSeq });
     
     // 立即关闭之前的连接
     this.closeConnection();
@@ -75,7 +75,7 @@ export class SSEHandler {
       // 获取token
       const token = TokenManager.getToken();
 
-      // console.log(`📡 发起fetchEventSource请求 #${currentConnectionId}:`, { url, body });
+      console.log(`📡 发起fetchEventSource请求 #${currentConnectionId}:`, { url, body });
 
       await fetchEventSource(url, {
         method: 'POST',
@@ -89,58 +89,72 @@ export class SSEHandler {
         signal: this.abortController.signal,
         
         onopen: async (response) => {
-            if (this.connectionId !== currentConnectionId) {
-                // console.log(`⚠️ 连接 #${currentConnectionId} 已被替换，忽略`);
-                return;
-            }
-            
-            // console.log(`✅ SSE连接已打开 #${currentConnectionId}:`, response.status);
-            this.isConnected = true;
-            this.options.onStatusChange?.('connected');
+          // 检查连接是否已被替换
+          if (currentConnectionId !== this.connectionId) {
+            console.log(`⚠️ 连接 #${currentConnectionId} 已被替换，忽略`);
+            return;
+          }
+          
+          console.log(`✅ SSE连接已打开 #${currentConnectionId}:`, response.status);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          this.isConnected = true;
+          this.options.onStatusChange?.('connected');
         },
         
         onmessage: (event) => {
-            if (this.connectionId !== currentConnectionId) {
-                // console.log(`⚠️ 连接 #${currentConnectionId} 消息被忽略`);
-                return;
-            }
-            
-            // console.log(`📥 收到SSE消息 #${currentConnectionId}:`, event.data);
-            this.handleSSEMessage(event.data);
+          // 检查连接是否已被替换
+          if (currentConnectionId !== this.connectionId) {
+            console.log(`⚠️ 连接 #${currentConnectionId} 消息被忽略`);
+            return;
+          }
+          
+          console.log(`📥 收到SSE消息 #${currentConnectionId}:`, event.data);
+          this.handleSSEMessage(event.data);
         },
         
         onclose: () => {
-            if (this.connectionId !== currentConnectionId) {
-                // console.log(`⚠️ 连接 #${currentConnectionId} 关闭被忽略`);
-                return;
-            }
-            
-            // console.log(`🔒 SSE连接已关闭 #${currentConnectionId}`);
-            this.isConnected = false;
-            this.options.onStatusChange?.('disconnected');
+          // 检查连接是否已被替换
+          if (currentConnectionId !== this.connectionId) {
+            console.log(`⚠️ 连接 #${currentConnectionId} 关闭被忽略`);
+            return;
+          }
+          
+          console.log(`🔒 SSE连接已关闭 #${currentConnectionId}`);
+          this.isConnected = false;
+          this.options.onStatusChange?.('disconnected');
+          
+          // 处理剩余队列并完成
+          this.finishProcessing();
         },
         
         onerror: (error) => {
-            if (this.connectionId !== currentConnectionId) {
-                // console.log(`⚠️ 连接 #${currentConnectionId} 错误被忽略`);
-                return;
-            }
-            
-            console.error(`❌ SSE连接错误 #${currentConnectionId}:`, error);
-            this.isConnected = false;
-            this.options.onStatusChange?.('error');
+          // 检查连接是否已被替换
+          if (currentConnectionId !== this.connectionId) {
+            console.log(`⚠️ 连接 #${currentConnectionId} 错误被忽略`);
+            return;
+          }
+          
+          console.error(`❌ SSE连接错误 #${currentConnectionId}:`, error);
+          this.isConnected = false;
+          this.options.onStatusChange?.('error');
+          this.options.onError(error instanceof Error ? error : new Error('SSE connection error'));
+          throw error; // 重新抛出错误以停止重连
         }
       });
       
     } catch (error) {
-      if (this.connectionId !== currentConnectionId) {
-        // console.log(`⚠️ 连接 #${currentConnectionId} 启动错误被忽略`);
+      // 检查连接是否已被替换
+      if (currentConnectionId !== this.connectionId) {
+        console.log(`⚠️ 连接 #${currentConnectionId} 启动错误被忽略`);
         return;
       }
       
       console.error(`❌ SSE连接启动失败 #${currentConnectionId}:`, error);
-       this.isConnected = false;
-       this.options.onStatusChange?.('error');
+      this.isConnected = false;
+      this.options.onStatusChange?.('error');
+      this.options.onError(error instanceof Error ? error : new Error('Failed to start SSE connection'));
     }
   }
 

@@ -24,10 +24,6 @@ const roleInfo = {
     name: 'Assistant',
     avatar: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/ptlz_zlp/ljhwZthlaukjlkulzlp/other/logo.png'
   },
-  system: {
-    name: 'System',
-    avatar: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/ptlz_zlp/ljhwZthlaukjlkulzlp/other/logo.png'
-  }
 };
 
 const commonOuterStyle = {
@@ -45,7 +41,7 @@ const uploadProps = { action: 'https://api.semi.design/upload' };
 const uploadTipProps = { content: '自定义上传按钮提示信息' };
 
 const ChatBubble: React.FC<ChatBubbleProps> = ({
-  messages = defaultMessage,
+  messages = [],
   onMessageSend,
   onChatsChange,
   onMessageReset,

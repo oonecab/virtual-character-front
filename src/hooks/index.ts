@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import {useState, useCallback, useEffect} from 'react';
 
 // 计数器Hook
 export const useCounter = (initialValue: number = 0) => {
@@ -16,20 +16,16 @@ export const useCounter = (initialValue: number = 0) => {
     setCount(initialValue);
   }, [initialValue]);
 
-  const setValue = useCallback((value: number) => {
-    setCount(value);
-  }, []);
-
   return {
     count,
     increment,
     decrement,
     reset,
-    setValue
+    setCount
   };
 };
 
-// 表单输入Hook
+// 输入框Hook
 export const useInput = (initialValue: string = '') => {
   const [value, setValue] = useState(initialValue);
 
@@ -41,18 +37,16 @@ export const useInput = (initialValue: string = '') => {
     setValue(initialValue);
   }, [initialValue]);
 
-  const clear = useCallback(() => {
-    setValue('');
-  }, []);
-
   return {
     value,
-    setValue,
-    handleChange,
+    onChange: handleChange,
     reset,
-    clear
+    setValue
   };
 };
+
+// 导出统一的UI状态管理hook
+export { useUIManager } from './useUIManager';
 
 // 切换状态Hook
 export const useToggle = (initialValue: boolean = false) => {
