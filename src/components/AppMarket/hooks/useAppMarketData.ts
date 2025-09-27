@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { AiCharacterService, type AiCharacter, type PageData } from '@/services/aiCharacterService';
+import { LOCAL_AI_CHARACTERS } from '@/config/aiCharacters';
 
 export const useAppMarketData = () => {
   const [aiCharacters, setAiCharacters] = useState<AiCharacter[]>([]);
@@ -13,24 +14,47 @@ export const useAppMarketData = () => {
     setError(null);
     
     try {
+      // 使用本地配置的AI角色数据
+      let filteredCharacters = [...LOCAL_AI_CHARACTERS];
+      
       if (search && search.trim()) {
-        // 搜索模式
-        const searchResults = await AiCharacterService.searchAiCharacters(search.trim());
-        setAiCharacters(searchResults);
+        // 搜索模式 - 根据名称和描述进行模糊搜索
+        const searchTerm = search.trim().toLowerCase();
+        filteredCharacters = LOCAL_AI_CHARACTERS.filter(char => 
+          char.aiName.toLowerCase().includes(searchTerm) ||
+          char.description.toLowerCase().includes(searchTerm)
+        );
+        setAiCharacters(filteredCharacters);
         setPageData(null);
       } else {
-        // 分页模式
-        const result = await AiCharacterService.getAiCharacterPage({
-          current: page,
-          size: 12
-        });
+        // 分页模式 - 模拟分页效果
+        const pageSize = 12;
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedCharacters = filteredCharacters.slice(startIndex, endIndex);
         
         if (page === 1) {
-          setAiCharacters(result.records);
+          setAiCharacters(paginatedCharacters);
         } else {
-          setAiCharacters(prev => [...prev, ...result.records]);
+          setAiCharacters(prev => [...prev, ...paginatedCharacters]);
         }
-        setPageData(result);
+        
+        // 模拟分页数据
+        const mockPageData: PageData<AiCharacter> = {
+          records: paginatedCharacters,
+          total: filteredCharacters.length,
+          size: pageSize,
+          current: page,
+          pages: Math.ceil(filteredCharacters.length / pageSize),
+          optimizeCountSql: true,
+          searchCount: true,
+          optimizeJoinOfCountSql: true,
+          maxLimit: 1000,
+          countId: 'id',
+          orders: []
+        };
+        
+        setPageData(mockPageData);
         setCurrentPage(page);
       }
     } catch (err) {

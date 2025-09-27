@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SSEHandler } from '@/components/ChatRoom/SSEHandler';
 import type { Agent, SSEMessage, ConnectionStatus, RecordingResult } from '../types';
+import { CozeWorkflowSSEHandler, CozeWorkflowService } from '../../../services/cozeWorkflowService';
 
 /**
  * AgentChatRoom 组件的主要业务逻辑 Hook
@@ -14,6 +15,7 @@ import type { Agent, SSEMessage, ConnectionStatus, RecordingResult } from '../ty
  */
 
 export const useAgentChatRoom = (agent: Agent) => {
+  
   // 状态管理
   const [messages, setMessages] = useState<SSEMessage[] | null>(null);  // 聊天消息列表
   const [isLoading, setIsLoading] = useState(false);        // 加载状态
@@ -21,18 +23,78 @@ export const useAgentChatRoom = (agent: Agent) => {
   const [isAnimated, setIsAnimated] = useState(false);      // 动画状态
 
   // Refs
-  const sseHandlerRef = useRef<SSEHandler | null>(null);    // SSE 处理器引用
+  const cozeSSEHandlerRef = useRef<CozeWorkflowSSEHandler | null>(null);    // Coze工作流SSE处理器引用
   const messageSeqRef = useRef(1);                          // 消息序列号引用
 
-  // 会话活跃度更新
+  // 初始化Coze工作流SSE处理器
   useEffect(() => {
-    // 定期更新会话的最后活跃时间，用于会话管理
-    const updateActiveTime = () => {
-      // 这里可以添加会话活跃时间更新逻辑
+    cozeSSEHandlerRef.current = new CozeWorkflowSSEHandler({
+      onMessage: (content: string) => {
+        // 更新最后一条消息的内容
+        setMessages(prevMessages => {
+          if (!prevMessages) return prevMessages;
+          const lastMessage = prevMessages[prevMessages.length - 1];
+          if (lastMessage && lastMessage.role === 'assistant') {
+            const updatedMessage = {
+              ...lastMessage,
+              content: lastMessage.content + content
+            };
+            return [...prevMessages.slice(0, -1), updatedMessage];
+          }
+          return prevMessages;
+        });
+      },
+      onComplete: (finalContent: string) => {
+        console.log('✅ Coze工作流完成:', finalContent);
+        setIsLoading(false);
+        setConnectionStatus('connected');
+        
+        // 标记最后一条消息为完成状态
+        setMessages(prevMessages => {
+          if (!prevMessages) return prevMessages;
+          const lastMessage = prevMessages[prevMessages.length - 1];
+          if (lastMessage && lastMessage.role === 'assistant') {
+            const updatedMessage = {
+              ...lastMessage,
+              status: 'complete' as const
+            };
+            return [...prevMessages.slice(0, -1), updatedMessage];
+          }
+          return prevMessages;
+        });
+      },
+      onError: (error: Error) => {
+        console.error('❌ Coze工作流错误:', error);
+        setIsLoading(false);
+        setConnectionStatus('error');
+        
+        // 更新最后一条消息为错误状态
+        setMessages(prevMessages => {
+          if (!prevMessages) return prevMessages;
+          const lastMessage = prevMessages[prevMessages.length - 1];
+          if (lastMessage && lastMessage.role === 'assistant') {
+            const updatedMessage = {
+              ...lastMessage,
+              content: lastMessage.content || '抱歉，处理您的请求时出现了错误，请稍后重试。',
+              status: 'error' as const
+            };
+            return [...prevMessages.slice(0, -1), updatedMessage];
+          }
+          return prevMessages;
+        });
+      },
+      onStatusChange: (status) => {
+        console.log('🔄 Coze工作流连接状态变化:', status);
+        setConnectionStatus(status);
+      }
+    });
+
+    // 清理函数
+    return () => {
+      if (cozeSSEHandlerRef.current) {
+        cozeSSEHandlerRef.current.closeConnection();
+      }
     };
-    
-    const interval = setInterval(updateActiveTime, 30000); // 每30秒更新一次
-    return () => clearInterval(interval);
   }, []);
 
   // 初始化欢迎消息和动画
@@ -41,7 +103,7 @@ export const useAgentChatRoom = (agent: Agent) => {
       // 设置初始欢迎消息
       const welcomeMessage: SSEMessage = {
         id: 'welcome',
-        content: `你好！我是 ${agent.name}，有什么可以帮助你的吗？`,
+        content: `你好！我是 ${agent?.name || '智能助手'}，有什么可以帮助你的吗？`,
         role: 'assistant'
       };
       
@@ -50,7 +112,7 @@ export const useAgentChatRoom = (agent: Agent) => {
       // 启动渐进动画
       setTimeout(() => setIsAnimated(true), 100);
     }
-  }, [agent.name, messages]);
+  }, [agent?.name, messages]);
 
   /**
    * 生成唯一的消息ID
@@ -76,6 +138,7 @@ export const useAgentChatRoom = (agent: Agent) => {
         id: generateMessageId(),
         role: 'user',
         content: content.trim(),
+        createAt: Date.now()
       };
 
       // 添加AI回复占位消息
@@ -83,33 +146,57 @@ export const useAgentChatRoom = (agent: Agent) => {
         id: generateMessageId(),
         role: 'assistant',
         content: '',
+        createAt: Date.now(),
+        status: 'loading'
       };
 
       setMessages(prev => prev ? [...prev, userMessage, aiMessage] : [userMessage, aiMessage]);
 
-      // 这里应该调用实际的AI服务
-      // 暂时模拟AI回复
-      setTimeout(() => {
-        setMessages(prev => {
-          if (!prev) return prev;
-          const updatedMessages = [...prev];
-          const lastMessage = updatedMessages[updatedMessages.length - 1];
-          if (lastMessage && lastMessage.role === 'assistant') {
-            lastMessage.content = `收到你的消息："${content}"，这是我的回复。`;
-            lastMessage.isComplete = true;
-          }
-          return updatedMessages;
+      // 获取工作流ID（根据agent类型或名称）
+      const workflowId = CozeWorkflowService.getWorkflowId(agent.name || 'default');
+      console.log('🎭 Agent名称:', agent.name);
+      console.log('🚀 使用工作流ID:', workflowId, '处理消息:', content);
+
+      // 启动Coze工作流SSE连接
+      if (cozeSSEHandlerRef.current) {
+        // 立即更新消息状态为不完整，并启动连接
+        setMessages(prevMessages => {
+          if (!prevMessages) return prevMessages;
+          const lastMessage = prevMessages[prevMessages.length - 1];
+          const updatedMessage = {
+            ...lastMessage,
+            status: 'incomplete' as const
+          };
+          return [...prevMessages.slice(0, -1), updatedMessage];
         });
-        setIsLoading(false);
-        setConnectionStatus('connected');
-      }, 1000);
+        
+        try {
+          await cozeSSEHandlerRef.current.startConnection(workflowId, content);
+        } catch (error) {
+          console.error('❌ 启动Coze工作流连接失败:', error);
+          setIsLoading(false);
+          setConnectionStatus('error');
+          
+          // 更新最后一条消息为错误状态
+          setMessages(prevMessages => {
+            if (!prevMessages) return prevMessages;
+            const lastMessage = prevMessages[prevMessages.length - 1];
+            const updatedMessage = {
+              ...lastMessage,
+              content: '抱歉，无法连接到AI服务，请稍后重试。',
+              status: 'error' as const
+            };
+            return [...prevMessages.slice(0, -1), updatedMessage];
+          });
+        }
+      }
 
     } catch (error) {
       console.error('发送消息失败:', error);
       setIsLoading(false);
       setConnectionStatus('error');
     }
-  }, [isLoading, generateMessageId]);
+  }, [isLoading, generateMessageId, agent.name]);
 
   /**
    * 处理录音完成的回调函数
@@ -128,8 +215,8 @@ export const useAgentChatRoom = (agent: Agent) => {
    */
   useEffect(() => {
     return () => {
-      if (sseHandlerRef.current) {
-        sseHandlerRef.current.close();
+      if (cozeSSEHandlerRef.current) {
+        cozeSSEHandlerRef.current.closeConnection();
       }
     };
   }, []);

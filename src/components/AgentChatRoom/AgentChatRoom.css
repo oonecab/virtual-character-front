@@ -67,6 +67,62 @@
   }
 }
 
+/* 输入框包装器 */
+.input-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 实时转录显示区域 */
+.realtime-transcription {
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.transcription-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.transcription-text {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.4;
+  min-height: 20px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(59, 130, 246, 0.1);
+  padding-top: 8px;
+}
+
 /* 输入框样式 */
 .chat-input {
   border: none !important;
@@ -123,4 +179,37 @@
 /* 强制隐藏Semi UI Chat组件的默认输入框 */
 body .agent-chat-room div.semi-chat .semi-chat-inputBox-container {
     display: none !important;
+}
+
+/* 语音播放按钮样式 */
+.voice-button {
+  transition: all 0.2s ease !important;
+}
+
+.voice-button:hover {
+  opacity: 1 !important;
+  transform: scale(1.05);
+}
+
+.voice-button.playing {
+  background-color: #1890ff !important;
+  color: white !important;
+  animation: voice-pulse 1.5s infinite;
+}
+
+.voice-button.error {
+  background-color: #ff4d4f !important;
+  color: white !important;
+}
+
+@keyframes voice-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(24, 144, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+  }
 }

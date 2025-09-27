@@ -39,7 +39,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}
-        hoverable
+        hoverable={true}
         onClick={() => onSelect(character)}
       >
         <div style={{ 
