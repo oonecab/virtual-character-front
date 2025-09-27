@@ -107,7 +107,7 @@ const CharacterList: React.FC = () => {
           <Col xs={24} sm={12} md={8} lg={6} key={character.id}>
             <Card
               className="character-card"
-              hoverable
+              hoverable={true}
               cover={
                 <div className="character-avatar-section">
                   <Avatar size={64} className="character-avatar">

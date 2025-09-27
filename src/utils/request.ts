@@ -65,7 +65,7 @@ class TokenManager {
 // 创建axios实例
 const request: AxiosInstance = axios.create({
   baseURL: '/api', // 使用Next.js本地API Routes
-  timeout: 10000,
+  timeout: 30000, // 增加到30秒，适应语音转文字的处理时间
   headers: {
     'Content-Type': 'application/json',
   },

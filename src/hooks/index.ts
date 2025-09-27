@@ -47,6 +47,7 @@ export const useInput = (initialValue: string = '') => {
 
 // 导出统一的UI状态管理hook
 export { useUIManager } from './useUIManager';
+export { useInputManager } from './useInputManager';
 
 // 切换状态Hook
 export const useToggle = (initialValue: boolean = false) => {

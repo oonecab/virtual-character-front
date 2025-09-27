@@ -184,6 +184,13 @@ export const useUIManager = () => {
   // 打开 AgentChatRoom
   const handleAgentChatRoomOpen = useCallback(async (agent: AgentInfo) => {
     console.log('🚀 打开 AgentChatRoom:', agent);
+    console.log('🔍 Agent详细信息:', {
+      id: agent.id,
+      name: agent.name,
+      avatar: agent.avatar,
+      description: agent.description,
+      prompt: agent.prompt
+    });
     
     try {
       // 导入会话服务
@@ -209,12 +216,6 @@ export const useUIManager = () => {
         sessionId: sessionResponse.sessionId
       };
       
-      console.log('🎯 设置 AgentChatRoom 状态:', {
-        selectedAgent: agentWithSession,
-        showAgentChatRoom: true,
-        showAppMarket: showAppMarket
-      });
-      
       // 先设置 AgentChatRoom 状态
       setSelectedAgent(agentWithSession);
       setShowAgentChatRoom(true);
@@ -233,12 +234,6 @@ export const useUIManager = () => {
         sessionId: tempSessionId
       };
       
-      console.log('🎯 设置 AgentChatRoom 状态 (fallback):', {
-        selectedAgent: agentWithSession,
-        showAgentChatRoom: true,
-        showAppMarket: showAppMarket
-      });
-      
       // 先设置 AgentChatRoom 状态
       setSelectedAgent(agentWithSession);
       setShowAgentChatRoom(true);
@@ -252,7 +247,6 @@ export const useUIManager = () => {
 
   // 关闭 AgentChatRoom
   const handleAgentChatRoomClose = useCallback(() => {
-    console.log('🔙 关闭 AgentChatRoom');
     
     // 清除 URL 中的 sessionId
     const url = new URL(window.location.href);

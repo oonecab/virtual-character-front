@@ -4,7 +4,11 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Chat, Input, Button, Toast } from '@douyinfe/semi-ui';
 import { IconSend, IconMicrophone, IconMenu } from '@douyinfe/semi-icons';
 import { useAgentChatRoom } from './hooks';
+import { useInputManager } from '../../hooks/useInputManager';
+import { useAuth } from '../../contexts/AuthContext';
+import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import AiChatSidebar from '../AiChatSidebar/AiChatSidebar';
+import VoiceButton from './VoiceButton';
 import type { Agent } from './types';
 import './AgentChatRoom.css';
 
@@ -20,15 +24,6 @@ interface AgentChatRoomProps {
   onNewChat?: () => void;
 }
 
-const roleInfo = {
-  user: {
-    avatar: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/ptlz_zlp/ljhwZthlaukjlkulzlp/docs-icon.png'
-  },
-  assistant: {
-    avatar: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/ptlz_zlp/ljhwZthlaukjlkulzlp/other/logo.png'
-  },
-};
-
 const commonOuterStyle = {
   opacity: 0,
   transform: 'translateY(20px)',
@@ -42,7 +37,17 @@ const animatedStyle = {
   transform: 'translateY(0)',
 };
 
-const AgentChatRoom: React.FC<AgentChatRoomProps> = ({ agent, onBack, onNewChat }) => {
+const AgentChatRoom: React.FC<AgentChatRoomProps> = ({ 
+  agent, 
+  onBack, 
+  onToggleSidebar, 
+  onNewChat 
+}) => {
+  
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user } = useAuth();
+  const audioRecorder = useAudioRecorder();
+  
   const {
     messages,
     isLoading,
@@ -52,13 +57,32 @@ const AgentChatRoom: React.FC<AgentChatRoomProps> = ({ agent, onBack, onNewChat 
     handleRecordingComplete
   } = useAgentChatRoom(agent);
 
-  const [inputValue, setInputValue] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const inputManager = useInputManager({
+    onSendMessage: onMessageSend,
+    onRecordingComplete: handleRecordingComplete,
+    audioRecorder: audioRecorder,
+  });
+
+  // 移除WebSocket相关代码，改用同步音频转文字接口
+
+
+
+  // 动态生成roleInfo，使用agent的头像和名称
+  const roleInfo = {
+    user: {
+      avatar: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/ptlz_zlp/ljhwZthlaukjlkulzlp/docs-icon.png'
+    },
+    assistant: {
+      name: agent?.name || '智能助手',
+      avatar: agent?.avatar || 'https://lf3-static.bytednsdoc.com/obj/eden-cn/ptlz_zlp/ljhwZthlaukjlkulzlp/other/logo.png'
+    },
+  };
+
+
 
   // 处理输入框发送
   const handleSendMessage = useCallback(() => {
-    if (!inputValue.trim()) {
+    if (!inputManager.inputValue.trim()) {
       Toast.warning({
         content: '请输入消息内容',
         duration: 1000,
@@ -66,9 +90,9 @@ const AgentChatRoom: React.FC<AgentChatRoomProps> = ({ agent, onBack, onNewChat 
       return;
     }
     
-    onMessageSend(inputValue.trim());
-    setInputValue('');
-  }, [inputValue, onMessageSend]);
+    onMessageSend(inputManager.inputValue.trim());
+    inputManager.clearInput();
+  }, [inputManager.inputValue, inputManager.clearInput, onMessageSend]);
 
   // 处理键盘事件
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
@@ -78,46 +102,25 @@ const AgentChatRoom: React.FC<AgentChatRoomProps> = ({ agent, onBack, onNewChat 
     }
   }, [handleSendMessage]);
 
-  // 处理麦克风录音
-  const handleMicrophoneClick = useCallback(() => {
-    if (isRecording) {
-      // 停止录音
-      setIsRecording(false);
-      // 这里可以添加停止录音的逻辑
-      Toast.info({
-        content: '录音已停止',
-        duration: 1000,
-      });
-    } else {
-      // 开始录音
-      setIsRecording(true);
-      Toast.info({
-        content: '开始录音...',
-        duration: 1000,
-      });
-      // 这里可以添加开始录音的逻辑
-    }
-  }, [isRecording]);
-
   // 处理侧边栏相关回调
   const handleSidebarToggle = useCallback(() => {
-    setSidebarVisible(true);
+    setIsSidebarOpen(true);
   }, []);
 
   const handleSidebarClose = useCallback(() => {
-    setSidebarVisible(false);
+    setIsSidebarOpen(false);
   }, []);
 
   const handleNewChatFromSidebar = useCallback(() => {
     if (onNewChat) {
       onNewChat();
     }
-    setSidebarVisible(false);
+    setIsSidebarOpen(false);
   }, [onNewChat]);
    return (
     <div className="agent-chat-room">
       {/* 左上角侧边栏展开按钮 - 始终显示（除非侧边栏已展开） */}
-      {!sidebarVisible && (
+      {!isSidebarOpen && (
         <div className="fixed top-5 left-5 z-[60]">
           <Button
             theme="borderless"
@@ -137,7 +140,9 @@ const AgentChatRoom: React.FC<AgentChatRoomProps> = ({ agent, onBack, onNewChat 
         showClearContext={false}
         showInput={false}
         inputAreaProps={{ style: { display: 'none' } }}
-        renderChatBoxAction={() => null}
+        renderChatBoxAction={(message, defaultDom) => {
+          return defaultDom;
+        }}
         markdownRenderProps={{
           className: 'chat-message-content'
         }}
@@ -145,48 +150,94 @@ const AgentChatRoom: React.FC<AgentChatRoomProps> = ({ agent, onBack, onNewChat 
       
       {/* 固定定位的输入框 */}
       <div className="fixed-input-area">
+        {/* 语音播放按钮区域 */}
+        {(() => {
+          // 获取最后一条AI助手的消息
+          const lastAssistantMessage = messages?.slice().reverse().find(msg => msg.role === 'assistant');
+          console.log('🔊 [AgentChatRoom] 检查最后一条AI消息:', lastAssistantMessage);
+          console.log('🔊 [AgentChatRoom] 消息内容类型:', typeof lastAssistantMessage?.content);
+          console.log('🔊 [AgentChatRoom] 消息内容长度:', lastAssistantMessage?.content?.length);
+          console.log('🔊 [AgentChatRoom] Agent名称:', agent?.name);
+          
+          if (lastAssistantMessage && lastAssistantMessage.content && typeof lastAssistantMessage.content === 'string') {
+            return (
+              <div className="voice-button-area">
+                <VoiceButton 
+                  text={lastAssistantMessage.content}
+                  agentName={agent?.name}
+                  size="default"
+                  circle={false}
+                  style={{
+                    marginBottom: '12px'
+                  }}
+                />
+              </div>
+            );
+          }
+          return null;
+        })()}
+        
         <div className="input-container">
           {/* 麦克风按钮 */}
           <div className="microphone-container">
             <Button
-              theme={isRecording ? "solid" : "borderless"}
-              type={isRecording ? "danger" : "tertiary"}
+              theme={inputManager.isListening ? "solid" : "borderless"}
+              type={inputManager.isListening ? "primary" : "tertiary"}
               icon={<IconMicrophone />}
-              onClick={handleMicrophoneClick}
-              className={`microphone-button ${isRecording ? 'recording' : ''}`}
+              onClick={() => {
+                console.log('🎤 麦克风按钮被点击');
+                console.log('🎤 当前状态:', {
+                  isListening: inputManager.isListening,
+                  audioRecorder: inputManager.audioRecorder?.state
+                });
+                inputManager.handleMicrophoneClick();
+              }}
+              className={`microphone-button ${inputManager.isListening ? 'recording' : ''}`}
               size="large"
             />
           </div>
           
           {/* 输入框和发送按钮 */}
-          <Input
-            value={inputValue}
-            onChange={setInputValue}
-            onKeyDown={handleKeyPress}
-            placeholder={isLoading ? "AI正在回复中..." : "输入你的消息... (Enter发送，Shift+Enter换行)"}
-            size="large"
-            className="chat-input"
-            disabled={isLoading}
-            suffix={
-              <Button
-                theme="solid"
-                type="primary"
-                icon={<IconSend />}
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading}
-                className="send-button"
-                loading={isLoading}
-              />
-            }
-          />
+          <div className="input-wrapper">
+            {/* 录音状态显示区域 */}
+            {inputManager.isListening && (
+              <div className="recording-indicator">
+                <div className="recording-status">
+                  <div className="pulse-dot"></div>
+                  <span>录音中...</span>
+                </div>
+              </div>
+            )}
+            
+            <Input
+              value={inputManager.inputValue}
+              onChange={inputManager.handleInputChange}
+              onKeyDown={handleKeyPress}
+              placeholder={isLoading ? "AI正在回复中..." : "输入你的消息... (Enter发送，Shift+Enter换行)"}
+              size="large"
+              className="chat-input"
+              disabled={isLoading}
+              suffix={
+                <Button
+                  theme="solid"
+                  type="primary"
+                  icon={<IconSend />}
+                  onClick={handleSendMessage}
+                  disabled={!inputManager.inputValue.trim() || isLoading}
+                  className="send-button"
+                  loading={isLoading}
+                />
+              }
+            />
+          </div>
         </div>
       </div>
 
       {/* AI助手侧边栏 */}
       <AiChatSidebar
-        visible={sidebarVisible}
+        visible={isSidebarOpen}
         onCancel={handleSidebarClose}
-        currentSessionId={agent.sessionId}
+        currentSessionId={agent?.sessionId}
         currentMessages={messages?.map(msg => ({
           role: msg.role,
           content: msg.content,

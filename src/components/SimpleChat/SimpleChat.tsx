@@ -11,14 +11,22 @@ import ChatRoom from '../ChatRoom/ChatRoom';
 import AppMarket from '../AppMarket/AppMarket';
 import AgentChatRoom from '../AgentChatRoom/AgentChatRoom';
 import { useSessionManager } from '../../hooks/useSessionManager';
-import { useInputManager } from '../../hooks/useInputManager';
+import { useInputManager, type UseInputManagerReturn } from '../../hooks/useInputManager';
 import { useChatManager } from '../../hooks/useChatManager';
 import { useUIManager } from '../../hooks/useUIManager';
+import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 
 const SimpleChat: React.FC = () => {
   // 使用自定义Hooks管理不同的逻辑
   const sessionManager = useSessionManager();
-  const inputManager = useInputManager();
+  const audioRecorder = useAudioRecorder();
+  const inputManager: UseInputManagerReturn = useInputManager({
+    onSendMessage: (message: string) => {
+      console.log('发送消息:', message);
+      // 这里可以添加发送消息的逻辑
+    },
+    audioRecorder
+  });
   const chatManager = useChatManager();
   const uiManager = useUIManager();
 
@@ -40,7 +48,7 @@ const SimpleChat: React.FC = () => {
       currentSessionId: sessionManager.currentSessionId
     });
     
-    if (inputManager.inputValue.trim()) {
+    if (inputManager.inputValue && inputManager.inputValue.trim()) {
       console.log('✅ 输入内容有效，开始创建新会话');
       
       // 创建新会话并切换到ChatRoom
@@ -123,10 +131,37 @@ const SimpleChat: React.FC = () => {
 
   // 处理角色选择
   const handleCharacterSelect = async (character: any) => {
-    console.log('🎭 选择角色:', character);
+    console.log('🎭 SimpleChat.handleCharacterSelect - 接收到的character:', character);
+    console.log('🔍 character的类型:', typeof character);
+    console.log('🔍 character的属性:', Object.keys(character));
     
-    // 直接调用 uiManager 的 handleAgentChatRoomOpen 方法
-    uiManager.handleAgentChatRoomOpen(character);
+    // 检查character是否已经是AgentInfo格式
+    if (character.name && !character.aiName) {
+      console.log('✅ character已经是AgentInfo格式，直接使用');
+      uiManager.handleAgentChatRoomOpen(character);
+      return;
+    }
+    
+    // 将 AiCharacter 转换为 AgentInfo 格式
+    const agentInfo = {
+      id: character.id ? character.id.toString() : character.id,
+      name: character.aiName || character.name,
+      avatar: character.aiAvatar || character.avatar,
+      description: character.description,
+      prompt: character.aiPrompt || character.prompt
+    };
+    
+    console.log('🎯 构建的agentInfo:', agentInfo);
+    console.log('🔍 agentInfo的属性检查:', {
+      id: agentInfo.id,
+      name: agentInfo.name,
+      avatar: agentInfo.avatar,
+      description: agentInfo.description,
+      prompt: agentInfo.prompt
+    });
+    
+    // 调用 uiManager 的 handleAgentChatRoomOpen 方法
+    uiManager.handleAgentChatRoomOpen(agentInfo);
   };
 
   // AppMarket 相关处理函数 - 使用新的统一hook
@@ -253,7 +288,7 @@ const SimpleChat: React.FC = () => {
                   theme="borderless"
                   icon={<IconSend />}
                   onClick={handleSend}
-                  disabled={!inputManager.inputValue.trim()}
+                  disabled={!inputManager.inputValue || !inputManager.inputValue.trim()}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-500 hover:bg-blue-50 rounded-full p-2 disabled:text-gray-300"
                 />
               </div>
