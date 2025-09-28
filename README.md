@@ -10,8 +10,7 @@
 
 一个基于 Next.js 的现代化 AI 对话平台，支持多种 AI 模型集成、角色扮演、语音交互等功能
 
-[在线演示](https://your-demo-url.com) · [问题反馈](https://github.com/your-repo/issues) · [功能请求](https://github.com/your-repo/issues/new)
-
+视频演示地址 https://www.bilibili.com/video/BV1o7nXzVEVm/?spm_id_from=333.1387.homepage.video_card.click&vd_source=9889d0ef5432d6b568bb0079110870e7
 </div>
 
 ## ✨ 特性
