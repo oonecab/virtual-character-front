@@ -1,5 +1,5 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { TokenManager } from '../../utils/request';
+import { TokenManager } from '@/utils/request';
 import AiChatService from '../../services/aiChatService';
 
 export interface SSEMessage {
@@ -282,9 +282,14 @@ export class SSEHandler {
         console.log('⚠️ 收到空数据，跳过处理');
         return null;
       }
-
+      // console.log("rawData: ====> ", rawData);
+      const jsonStr = rawData.replace(/^data:\s*/, '').trim();
+      if (jsonStr === '[DONE]') {
+          this.finishProcessing();
+          return null;
+      }
       // 解析JSON数据
-      const data = JSON.parse(rawData);
+      const data = JSON.parse(jsonStr);
       console.log('📊 解析后的数据:', data);
 
       // 处理choices[0].delta.content格式
